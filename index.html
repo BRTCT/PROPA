@@ -760,6 +760,118 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   }
   .mes-nav-select:hover{border-color:var(--azul);}
 
+  /* ===== Pastas (cadastros agrupados) ===== */
+  .cs-pastas{padding:6px 16px 4px;}
+  .cs-pastas-grade{display:grid;grid-template-columns:repeat(auto-fill, minmax(190px, 1fr));gap:58px 20px;padding:56px 2px 10px;}
+  .cs-pasta{position:relative;height:150px;border:0;background:transparent;padding:0;cursor:pointer;perspective:800px;font-family:inherit;text-align:left;transition:transform .35s cubic-bezier(.2,.8,.3,1), opacity .3s, filter .3s;}
+  .cs-pasta.entrar{animation:csPastaEntrar .6s cubic-bezier(.2,.8,.3,1) backwards;}
+  .cs-pasta:focus-visible{outline:3px solid var(--azul);outline-offset:4px;border-radius:10px;}
+  .cs-pasta-costas{position:absolute;left:0;right:0;top:16px;bottom:0;background:var(--c1);border-radius:4px 12px 12px 12px;box-shadow:0 8px 18px -10px rgba(0,0,0,.45);}
+  .cs-pasta-costas::before{content:"";position:absolute;left:0;top:-15px;width:46%;height:18px;background:var(--c1);border-radius:9px 12px 0 0;clip-path:polygon(0 0, 82% 0, 100% 100%, 0 100%);}
+  .cs-pasta-folhas{position:absolute;left:10px;right:10px;top:12px;bottom:10px;}
+  .cs-pasta-folhas i{position:absolute;left:0;right:0;top:10px;bottom:0;overflow:hidden;background:#fff;border-radius:4px;box-shadow:0 1px 3px rgba(0,0,0,.15);transition:transform .45s cubic-bezier(.2,.8,.3,1);background-image:repeating-linear-gradient(#fff 0 13px, #eef1f4 13px 14px);}
+  .cs-pasta-folhas i:nth-child(1){transform:rotate(-3deg) translateY(4px);}
+  .cs-pasta-folhas i:nth-child(2){transform:rotate(2.5deg) translateY(2px);left:4px;right:-2px;}
+  .cs-pasta-folhas i:nth-child(3){transform:translateY(0);left:2px;right:2px;}
+  .cs-pasta.vazia .cs-pasta-folhas{display:none;}
+  .cs-pasta-frente{position:absolute;left:0;right:0;bottom:0;height:78%;display:flex;flex-direction:column;justify-content:flex-end;gap:1px;padding:10px 12px 11px;
+    background:linear-gradient(155deg, var(--c2) 0%, var(--c1) 78%);border-radius:7px 7px 12px 12px;color:#fff;transform-origin:50% 100%;
+    transition:transform .5s cubic-bezier(.2,.8,.3,1), box-shadow .4s;box-shadow:0 -1px 0 rgba(255,255,255,.25) inset, 0 10px 18px -12px rgba(0,0,0,.6);}
+  .cs-pasta-frente::after{content:"";position:absolute;inset:0;border-radius:inherit;background:linear-gradient(115deg, rgba(255,255,255,.22), rgba(255,255,255,0) 45%);pointer-events:none;}
+  .cs-pasta-nome{font-size:15px;font-weight:700;letter-spacing:.01em;line-height:1.15;text-shadow:0 1px 2px rgba(0,0,0,.25);}
+  .cs-pasta-qtd{font-size:11.5px;opacity:.95;margin-top:2px;} .cs-pasta-qtd b{font-size:14px;}
+  .cs-pasta-info{font-size:10.5px;opacity:.85;}
+  .cs-pasta-alerta{position:absolute;top:-9px;right:-7px;min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:#d03b3b;color:#fff;font-size:11.5px;font-weight:700;display:flex;align-items:center;justify-content:center;box-shadow:0 0 0 3px #fff;animation:csPastaPulso 1.8s ease-in-out infinite;}
+  .cs-pasta:hover{transform:translateY(-5px);}
+  .cs-pasta:hover .cs-pasta-frente{transform:rotateX(-20deg);}
+  .cs-pasta:hover .cs-pasta-folhas i:nth-child(3){transform:translateY(-14px);}
+  .cs-pasta:hover .cs-pasta-folhas i:nth-child(2){transform:rotate(3.5deg) translateY(-6px);}
+  .cs-pasta.aberta{transform:translateY(-6px);}
+  .cs-pasta.aberta .cs-pasta-frente{transform:rotateX(-38deg);box-shadow:0 -1px 0 rgba(255,255,255,.25) inset, 0 18px 24px -14px rgba(0,0,0,.7);}
+  .cs-pasta.aberta .cs-pasta-folhas i:nth-child(3){transform:translateY(-58px);box-shadow:0 6px 16px -6px rgba(0,0,0,.35);}
+  .cs-pasta-papel{position:absolute;left:8px;right:8px;top:7px;display:flex;flex-direction:column;align-items:center;text-align:center;color:#2a3138;opacity:0;transform:translateY(6px);transition:opacity .35s .15s, transform .45s .15s cubic-bezier(.2,.8,.3,1);}
+  .cs-pasta-papel small{font-size:9.5px;text-transform:uppercase;letter-spacing:.06em;color:#6b747d;font-weight:700;}
+  .cs-pasta-papel b{font-size:14.5px;line-height:1.25;color:var(--c1);white-space:nowrap;}
+  .cs-pasta-papel em{font-style:normal;font-size:9.5px;color:#6b747d;}
+  .cs-pasta.aberta .cs-pasta-papel{opacity:1;transform:none;}
+  .cs-pasta.aberta .cs-pasta-folhas i:nth-child(2){transform:rotate(4deg) translateY(-16px);}
+  .cs-pasta.aberta .cs-pasta-folhas i:nth-child(1){transform:rotate(-4deg) translateY(-8px);}
+  .cs-pasta.aberta::after{content:"";position:absolute;left:30%;right:30%;bottom:-12px;height:4px;border-radius:2px;background:var(--c1);animation:csPastaMarca .4s ease both;}
+  .cs-pasta.outra{opacity:.55;filter:saturate(.6);}
+  .cs-pasta.outra:hover{opacity:.9;filter:none;}
+  .cs-pasta.vazia .cs-pasta-frente{background:linear-gradient(155deg, #c9ced4, #a9b0b8 78%);}
+  .cs-pasta.vazia .cs-pasta-costas, .cs-pasta.vazia .cs-pasta-costas::before{background:#98a0a8;}
+  .cs-pastas-dica{text-align:center;color:#7a838c;font-size:12.5px;padding:14px 0 18px;animation:csPastaEntrar .6s .4s backwards;}
+  @keyframes csPastaEntrar{from{opacity:0;transform:translateY(18px) scale(.94);}to{opacity:1;transform:none;}}
+  @keyframes csPastaPulso{0%,100%{transform:scale(1);}50%{transform:scale(1.12);}}
+  @keyframes csPastaMarca{from{transform:scaleX(0);}to{transform:scaleX(1);}}
+  @media (prefers-reduced-motion: reduce){ .cs-pasta, .cs-pasta *{animation:none !important;transition:none !important;} }
+  /* ===== Controle Integrado ===== */
+  .ci-badge{display:inline-block;padding:3px 9px;border-radius:12px;font-size:11.5px;font-weight:600;white-space:nowrap;}
+  .ci-alerta{display:grid;grid-template-columns:78px 1fr auto auto;gap:14px;align-items:center;padding:12px 14px;border:1px solid #e4e7ea;border-left:4px solid #b8bec5;border-radius:4px;margin-bottom:8px;background:#fff;}
+  .ci-alerta.nivel-critico{border-left-color:#d03b3b;background:#fffafa;}
+  .ci-alerta.nivel-alto{border-left-color:#e07b00;}
+  .ci-alerta.nivel-medio{border-left-color:#e3b23c;}
+  .ci-alerta.nivel-info{border-left-color:#0369a1;}
+  .ci-alerta-nivel{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:#5a6570;}
+  .nivel-critico .ci-alerta-nivel{color:#d03b3b;} .nivel-alto .ci-alerta-nivel{color:#b45309;} .nivel-medio .ci-alerta-nivel{color:#a16207;} .nivel-info .ci-alerta-nivel{color:#0369a1;}
+  .ci-alerta-rot{font-size:13px;font-weight:700;}
+  .ci-alerta-tit{font-size:12.5px;margin-top:2px;}
+  .ci-alerta-meta{font-size:11px;color:var(--v-text-muted);margin-top:2px;}
+  .ci-alerta-valor{font-weight:700;font-size:13px;white-space:nowrap;}
+  .ci-alerta-acoes{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end;}
+  @media (max-width:800px){ .ci-alerta{grid-template-columns:1fr;} .ci-alerta-acoes{justify-content:flex-start;} }
+  .ci-tudo-certo{text-align:center;padding:40px 20px;color:#3b5;font-size:13px;}
+  .ci-tudo-certo-ic{width:54px;height:54px;border-radius:50%;background:#e7f6e2;color:#0d8a2e;font-size:28px;line-height:54px;margin:0 auto 10px;}
+  .ci-aviso-entrada{position:fixed;right:22px;bottom:22px;z-index:80;width:330px;max-width:calc(100vw - 30px);background:#fff;border:1px solid #e4e7ea;border-top:4px solid #d03b3b;border-radius:6px;box-shadow:0 10px 30px rgba(0,0,0,.18);padding:14px 16px;font-size:12.5px;animation:ciEntrar .45s cubic-bezier(.2,.9,.3,1.2);}
+  .ci-aviso-entrada .t{font-weight:700;font-size:14px;margin-bottom:6px;}
+  .ci-aviso-entrada ul{margin:0 0 12px;padding-left:18px;}
+  .ci-aviso-entrada li{margin:3px 0;} .ci-aviso-entrada li.c{color:#d03b3b;} .ci-aviso-entrada li.a{color:#b45309;}
+  .ci-aviso-entrada .x{position:absolute;top:8px;right:8px;border:0;background:transparent;cursor:pointer;color:#777;font-size:14px;}
+  @keyframes ciEntrar{from{opacity:0;transform:translateY(20px);}to{opacity:1;transform:none;}}
+  .ci-gerar-form{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end;}
+  .ci-gerar-form label{display:flex;flex-direction:column;gap:3px;font-size:11.5px;color:#555;}
+  .ci-gerar-info{font-size:11.5px;color:var(--v-text-muted);margin-top:10px;}
+  .ci-cal-nav{display:flex;align-items:center;gap:8px;margin-bottom:14px;flex-wrap:wrap;}
+  .ci-cal-mes{font-size:17px;font-weight:700;min-width:170px;text-align:center;}
+  .ci-cal{display:grid;grid-template-columns:repeat(7, minmax(0,1fr));gap:4px;}
+  .ci-dow{font-size:11px;font-weight:700;color:#5a6570;text-align:center;padding:4px 0;}
+  .ci-dia{min-height:96px;border:1px solid #e4e7ea;border-radius:4px;padding:5px;background:#fff;overflow:hidden;}
+  .ci-dia.vazio{border:0;background:transparent;}
+  .ci-dia.fds{background:#fafbfc;}
+  .ci-dia.hoje{border:2px solid var(--azul);}
+  .ci-dia-num{display:flex;justify-content:space-between;align-items:baseline;font-size:12px;margin-bottom:4px;}
+  .ci-dia-num b{font-size:10px;color:#333;white-space:nowrap;}
+  .ci-chip{display:block;font-size:10.5px;padding:2px 5px;border-radius:3px;margin-bottom:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;}
+  .ci-chip.pago{background:#e7f6e2;color:#0d8a2e;} .ci-chip.aberto{background:#e0f2fe;color:#0369a1;} .ci-chip.hoje{background:#fff1db;color:#b45309;} .ci-chip.venc{background:#fdecea;color:#d03b3b;} .ci-chip.mais{background:#f0f0f0;color:#555;}
+  .ci-cal-legenda{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;font-size:11.5px;align-items:center;}
+  .ci-cal-legenda .ci-chip{display:inline-block;cursor:default;}
+  .ci-ficha-topo{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;}
+  .ci-ficha-cab{display:grid;grid-template-columns:minmax(200px,1fr) 2fr;gap:24px;align-items:center;background:#fff;border:1px solid #e4e7ea;border-radius:6px;padding:16px 20px;margin-bottom:16px;}
+  @media (max-width:800px){ .ci-ficha-cab{grid-template-columns:1fr;} }
+  .ci-ficha-num{font-size:20px;font-weight:700;} .ci-ficha-forn{color:var(--v-text-muted);font-size:13px;}
+  .ci-regua-trilho{position:relative;height:10px;background:#eceef0;border-radius:5px;}
+  .ci-regua-fill{height:100%;border-radius:5px;}
+  .ci-regua-hoje{position:absolute;top:-4px;width:3px;height:18px;background:#333;border-radius:2px;transform:translateX(-1px);}
+  .ci-regua-datas{display:flex;justify-content:space-between;font-size:11.5px;margin-top:6px;color:#555;}
+  .ci-ficha-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px 18px;}
+  .ci-ficha-rot{font-size:11px;color:var(--v-text-muted);} .ci-ficha-val{font-size:12.5px;font-weight:600;}
+  .ci-ficha-obs{margin-top:12px;font-size:12px;background:#fafbfc;border-radius:4px;padding:8px 10px;white-space:pre-line;}
+  .ci-timeline{position:relative;padding-left:18px;}
+  .ci-timeline::before{content:"";position:absolute;left:5px;top:6px;bottom:6px;width:2px;background:#e4e7ea;}
+  .ci-tl-item{position:relative;padding:0 0 14px 10px;}
+  .ci-tl-item::before{content:"";position:absolute;left:-17px;top:4px;width:10px;height:10px;border-radius:50%;background:#fff;border:2px solid #0369a1;}
+  .ci-tl-item.ini::before{border-color:#0d8a2e;background:#0d8a2e;} .ci-tl-item.fim::before{border-color:#d03b3b;} .ci-tl-item.adit::before{border-color:#c07a00;background:#fdf3e0;}
+  .ci-tl-data{font-size:11px;color:var(--v-text-muted);} .ci-tl-tit{font-size:12.5px;font-weight:700;} .ci-tl-det{font-size:11.5px;color:#555;}
+  .ci-colunas{display:grid;grid-template-columns:repeat(12, minmax(0,1fr));gap:6px;align-items:end;height:200px;}
+  .ci-col{display:flex;flex-direction:column;align-items:center;height:100%;}
+  .ci-col-barras{flex:1;width:100%;display:flex;align-items:flex-end;justify-content:center;}
+  .ci-col-prev{width:70%;max-width:38px;background:#dfe6ee;border-radius:3px 3px 0 0;position:relative;display:flex;align-items:flex-end;min-height:1px;}
+  .ci-col-pago{width:100%;background:#0d8a2e;border-radius:3px 3px 0 0;}
+  .ci-col.atual .ci-col-prev{outline:2px solid var(--azul);outline-offset:1px;}
+  .ci-col-val{font-size:9px;color:#555;margin-top:3px;text-align:center;line-height:1.15;word-break:break-word;min-height:21px;} .ci-col-lbl{font-size:11px;font-weight:600;}
+  .ci-leg{display:inline-block;width:10px;height:10px;border-radius:2px;vertical-align:middle;margin-right:4px;} .ci-leg.prev{background:#dfe6ee;} .ci-leg.pago{background:#0d8a2e;}
+  @media print{ body *{visibility:hidden;} #viz-conteudo, #viz-conteudo *{visibility:visible;} #viz-conteudo{position:absolute;left:0;top:0;width:100%;} .ci-ficha-topo{display:none;} }
   /* Trilha PA - editor de etapas do treinamento */
   .etp-box{border:1px solid #d0d0d0;border-radius:3px;background:#fff;padding:8px;}
   .etp-topo{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;font-size:12px;color:#555;}
@@ -1764,7 +1876,8 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         </div>
         <div class="filtro-bar" id="cs-filtro-colunas" style="display:none;flex-wrap:wrap;row-gap:8px;"></div>
         <div class="func-msg info" id="cs-msg"></div>
-        <div class="func-wrap">
+        <div id="cs-pastas" class="cs-pastas" style="display:none;"></div>
+        <div class="func-wrap" id="cs-func-wrap">
           <div id="cs-empty" class="func-empty" style="display:none;"></div>
           <table class="func" id="cs-table" style="display:none;">
             <thead id="cs-thead"></thead>
@@ -2327,6 +2440,34 @@ var AMBIENTES = [
         titulo: 'Acompanhamento',
         sub: 'Evolução da integração e dos treinamentos',
         itens: ['Trilha de Integração','Evolução dos Treinamentos','Treinamentos a Vencer']
+      }
+    ]
+  },
+  {
+    codigo: '08',
+    nome: 'Controle Integrado',
+    desc: 'Contratos, aditivos, boletos a pagar e alertas de vencimento',
+    icone: '📑',
+    disponivel: true,
+    banner: {
+      titulo: 'Controle Integrado',
+      texto: 'Contratos e aditivos em um só lugar, com boletos a pagar, calendário de pagamentos e uma central que avisa antes de algo vencer.'
+    },
+    secoes: [
+      {
+        titulo: 'Contratos',
+        sub: 'Cadastro, aditivos e a ficha completa de cada contrato',
+        itens: ['Cadastro de Contratos','Aditivos','Ficha do Contrato']
+      },
+      {
+        titulo: 'Contas a Pagar',
+        sub: 'Boletos, vencimentos e geração automática de parcelas',
+        itens: ['Boletos a Pagar','Gerar Boletos do Contrato']
+      },
+      {
+        titulo: 'Alertas e Painéis',
+        sub: 'O que vence, o que atrasou e para onde vai o dinheiro',
+        itens: ['Central de Alertas','Calendário de Pagamentos','Painel Financeiro']
       }
     ]
   }
@@ -2988,6 +3129,7 @@ function entrarNoAmbiente(a){
   state.abas = [];
   state.abaAtivaId = null;
   abaCriarHome();
+  if(typeof ciAoEntrarNoAmbiente === 'function') ciAoEntrarNoAmbiente(a);
 }
 
 /* "Cadastros > Usuários" só deve aparecer no menu/Início pra quem é admin
@@ -3065,7 +3207,15 @@ var ROTINAS_PRONTAS = {
   'Gestão de Treinamentos::Participações': 'abrirTrilhaParticipacoes',
   'Acompanhamento::Trilha de Integração': 'abrirTrilhaIntegracao',
   'Acompanhamento::Evolução dos Treinamentos': 'abrirTrilhaEvolucao',
-  'Acompanhamento::Treinamentos a Vencer': 'abrirTrilhaVencer'
+  'Acompanhamento::Treinamentos a Vencer': 'abrirTrilhaVencer',
+  'Contratos::Cadastro de Contratos': 'abrirCiContratos',
+  'Contratos::Aditivos': 'abrirCiAditivos',
+  'Contratos::Ficha do Contrato': 'abrirCiFicha',
+  'Contas a Pagar::Boletos a Pagar': 'abrirCiBoletos',
+  'Contas a Pagar::Gerar Boletos do Contrato': 'abrirCiGerarBoletos',
+  'Alertas e Painéis::Central de Alertas': 'abrirCiAlertas',
+  'Alertas e Painéis::Calendário de Pagamentos': 'abrirCiCalendario',
+  'Alertas e Painéis::Painel Financeiro': 'abrirCiPainel'
 };
 
 function acionarRotina(chave){
@@ -3270,6 +3420,9 @@ function renderAbasBar(){
    Cada configuração descreve: a tabela do Supabase, os campos do formulário
    (com tipo - text/select/date/number/textarea) e quais desses campos aparecem
    como coluna na tabela de listagem. */
+/* Setores do Controle Integrado (lista suspensa em Contratos e Boletos) */
+var CI_SETORES = ['RH','Medicina Ocupacional','Jurídico','R&S','T&D','DP','Benefícios'];
+
 var CADASTROS_SIMPLES = {
   jur_processos: {
     ambiente: 'Jurídico',
@@ -3429,6 +3582,141 @@ var CADASTROS_SIMPLES = {
       { chave:'ambientes_permitidos', label:'Ambientes com Acesso', tipo:'ambientes-checkbox', largura:'full' }
     ],
     colunasTabela: ['usuario','nome','email','status','admin','ambientes_permitidos']
+  },
+  /* ================= CONTROLE INTEGRADO (ambiente 08) ================= */
+  ci_contratos: {
+    ambiente: 'Controle Integrado', secao: 'Contratos', titulo: 'Cadastro de Contratos',
+    tabela: 'ci_contratos',
+    larguraDialogo: '900px',
+    instrucao: 'Cadastre cada contrato com duração, responsável, setor, valores e dia de pagamento. A data de término é calculada sozinha pela duração (se você deixar em branco). "Avisar com antecedência" define quantos dias antes do fim o contrato aparece na Central de Alertas. A coluna "Vigência" já considera os aditivos de prazo.',
+    campoBusca: ['numero','objeto','fornecedor','cnpj','responsavel','setor'],
+    campos: [
+      { chave:'numero', label:'Nº do Contrato', tipo:'text', obrigatorio:true },
+      { chave:'status', label:'Status', tipo:'select', opcoes:['Vigente','Em renovação','Suspenso','Encerrado'], padrao:'Vigente' },
+      { chave:'objeto', label:'Objeto do contrato', tipo:'text', obrigatorio:true, largura:'full' },
+      { chave:'fornecedor', label:'Fornecedor / Contratada', tipo:'text', obrigatorio:true },
+      { chave:'cnpj', label:'CNPJ / CPF', tipo:'text' },
+      { chave:'responsavel', label:'Responsável (gestor do contrato)', tipo:'text', obrigatorio:true },
+      { chave:'setor', label:'Setor', tipo:'select', obrigatorio:true, opcoes: CI_SETORES },
+      { chave:'centro_custo', label:'Centro de Custo', tipo:'text' },
+      { chave:'data_inicio', label:'Início da vigência', tipo:'date', obrigatorio:true },
+      { chave:'duracao_meses', label:'Duração (meses)', tipo:'inteiro', obrigatorio:true },
+      { chave:'data_fim', label:'Término (calculado: início + duração)', tipo:'date', somenteLeitura:true },
+      { chave:'valor_total', label:'Valor total do contrato', tipo:'number' },
+      { chave:'valor_parcela', label:'Valor da parcela / mensal', tipo:'number' },
+      { chave:'periodicidade', label:'Periodicidade do pagamento', tipo:'select', opcoes:['Mensal','Bimestral','Trimestral','Semestral','Anual','Parcela única'], padrao:'Mensal' },
+      { chave:'dia_pagamento', label:'Dia de pagamento (vencimento)', tipo:'inteiro' },
+      { chave:'forma_pagamento', label:'Forma de pagamento', tipo:'select', opcoes:['Boleto','PIX','Transferência','Débito automático','Cartão','Outro'], padrao:'Boleto' },
+      { chave:'alerta_dias', label:'Avisar com antecedência (dias)', tipo:'inteiro', padrao:30 },
+      { chave:'indice_reajuste', label:'Índice de reajuste', tipo:'select', opcoes:['Sem reajuste','IPCA','IGP-M','INPC','Negociado'] },
+      { chave:'data_reajuste', label:'Próximo reajuste', tipo:'date' },
+      { chave:'link_documento', label:'Link do contrato assinado (Drive, SharePoint…)', tipo:'text', largura:'full' },
+      { chave:'observacoes', label:'Observações', tipo:'textarea', largura:'full' }
+    ],
+    colunasTabela: ['numero','objeto','fornecedor','responsavel','setor','valor_parcela','dia_pagamento','_vigencia','_situacao','status'],
+    rotulos: { _vigencia: 'Vigência até', _situacao: 'Situação' },
+    colunasInlineSelect: { status: ['Vigente','Em renovação','Suspenso','Encerrado'] },
+    colunasStatusColorido: ['status','_situacao'],
+    camposDerivados: {
+      _vigencia: function(item){ var e = ciContratoEfetivo(item); return e.fim ? fmtBR(e.fim) : '-'; },
+      _situacao: function(item){ return ciSituacaoContrato(item); }
+    },
+    pastas: { campo:'setor', lista: function(){ return CI_SETORES; }, resumo: function(itens){ return ciResumoPasta(itens); } },
+    filtrosColuna: [
+      { chave:'responsavel', label:'Responsável', tipo:'select' },
+      { chave:'fornecedor', label:'Fornecedor', tipo:'select' },
+      { chave:'status', label:'Status', tipo:'select' },
+      { chave:'_situacao', label:'Situação', tipo:'select' }
+    ],
+    validar: function(payload, editandoId){ return ciValidarContrato(payload, editandoId); },
+    /* término se atualiza na hora ao mudar início ou duração */
+    aoAbrirForm: function(){
+      var atualizar = function(){
+        var ini = $('cs-f-data_inicio').value, m = parseInt($('cs-f-duracao_meses').value, 10);
+        $('cs-f-data_fim').value = (ini && m > 0) ? ciSomarDias(ciSomarMeses(ini, m), -1) : '';
+      };
+      $('cs-f-data_inicio').addEventListener('change', atualizar);
+      $('cs-f-duracao_meses').addEventListener('input', atualizar);
+      atualizar();
+    }
+  },
+  ci_aditivos: {
+    ambiente: 'Controle Integrado', secao: 'Contratos', titulo: 'Aditivos',
+    tabela: 'ci_aditivos',
+    larguraDialogo: '760px',
+    instrucao: 'Registre cada termo aditivo. Aditivo de PRAZO: informe a nova data de término ou os meses acrescidos. Aditivo de VALOR: informe o acréscimo (ou um valor negativo para supressão) e, se mudar, o novo valor da parcela. A vigência e o valor atualizados do contrato são recalculados em todo o ambiente.',
+    campoBusca: ['contrato','numero_aditivo','tipo','descricao'],
+    campos: [
+      { chave:'contrato', label:'Contrato', tipo:'select', obrigatorio:true, largura:'full', fonte:'ci_contratos', campoFonte:'numero',
+        rotuloFonte: function(d){ return d.numero + ' - ' + (d.fornecedor || '') + (d.objeto ? ' (' + d.objeto + ')' : ''); } },
+      { chave:'numero_aditivo', label:'Nº do Aditivo', tipo:'text', obrigatorio:true },
+      { chave:'tipo', label:'Tipo', tipo:'select', obrigatorio:true, opcoes:['Prazo','Valor','Prazo e valor','Escopo','Supressão'] },
+      { chave:'data_assinatura', label:'Data de assinatura', tipo:'date', obrigatorio:true },
+      { chave:'meses_acrescidos', label:'Meses acrescidos (prazo)', tipo:'inteiro' },
+      { chave:'nova_data_fim', label:'Nova data de término (prazo)', tipo:'date' },
+      { chave:'valor_acrescimo', label:'Acréscimo no valor total (negativo = supressão)', tipo:'number' },
+      { chave:'novo_valor_parcela', label:'Novo valor da parcela', tipo:'number' },
+      { chave:'descricao', label:'Descrição / justificativa', tipo:'textarea', largura:'full' },
+      { chave:'link_documento', label:'Link do aditivo assinado', tipo:'text', largura:'full' }
+    ],
+    colunasTabela: ['contrato','numero_aditivo','tipo','data_assinatura','meses_acrescidos','nova_data_fim','valor_acrescimo','novo_valor_parcela'],
+    filtrosColuna: [
+      { chave:'contrato', label:'Contrato', tipo:'select' },
+      { chave:'tipo', label:'Tipo', tipo:'select' },
+      { chave:'data_assinatura', label:'Assinatura', tipo:'daterange' }
+    ],
+    validar: function(payload){
+      if(/prazo/i.test(payload.tipo || '') && !payload.meses_acrescidos && !payload.nova_data_fim)
+        return 'Aditivo de prazo: informe os meses acrescidos ou a nova data de término.';
+      if(/valor|supress/i.test(payload.tipo || '') && payload.valor_acrescimo === null && payload.novo_valor_parcela === null)
+        return 'Aditivo de valor: informe o acréscimo no valor total ou o novo valor da parcela.';
+      return null;
+    }
+  },
+  ci_boletos: {
+    ambiente: 'Controle Integrado', secao: 'Contas a Pagar', titulo: 'Boletos a Pagar',
+    tabela: 'ci_boletos',
+    larguraDialogo: '820px',
+    instrucao: 'Cada boleto (ou pagamento) com vencimento. Ao escolher o contrato, fornecedor, setor e valor são preenchidos sozinhos. Mude o Status para "Pago" direto na lista - ou use "Gerar Boletos do Contrato" para lançar todas as parcelas de uma vez. A coluna "Situação" mostra na hora o que está vencido.',
+    campoBusca: ['contrato','fornecedor','descricao','linha_digitavel','setor'],
+    campos: [
+      { chave:'contrato', label:'Contrato', tipo:'select', largura:'full', fonte:'ci_contratos', campoFonte:'numero',
+        rotuloFonte: function(d){ return d.numero + ' - ' + (d.fornecedor || '') + (d.objeto ? ' (' + d.objeto + ')' : ''); },
+        filtroFonte: function(d){ return !/encerrad/i.test(d.status || ''); },
+        preencheDaFonte: { fornecedor:'fornecedor', setor:'setor', valor: function(d){ return d.valor_parcela; }, forma_pagamento:'forma_pagamento' } },
+      { chave:'fornecedor', label:'Fornecedor / Beneficiário', tipo:'text', obrigatorio:true },
+      { chave:'setor', label:'Setor', tipo:'select', opcoes: CI_SETORES },
+      { chave:'descricao', label:'Descrição', tipo:'text', largura:'full' },
+      { chave:'competencia', label:'Competência (MM/AAAA)', tipo:'text' },
+      { chave:'vencimento', label:'Vencimento', tipo:'date', obrigatorio:true },
+      { chave:'valor', label:'Valor', tipo:'number', obrigatorio:true },
+      { chave:'status', label:'Status', tipo:'select', opcoes:['A pagar','Pago','Cancelado'], padrao:'A pagar' },
+      { chave:'forma_pagamento', label:'Forma de pagamento', tipo:'select', opcoes:['Boleto','PIX','Transferência','Débito automático','Cartão','Outro'], padrao:'Boleto' },
+      { chave:'data_pagamento', label:'Data do pagamento', tipo:'date' },
+      { chave:'valor_pago', label:'Valor pago (com juros/desconto)', tipo:'number' },
+      { chave:'linha_digitavel', label:'Linha digitável / código de barras / chave PIX', tipo:'text', largura:'full' },
+      { chave:'link_documento', label:'Link do boleto / comprovante', tipo:'text', largura:'full' },
+      { chave:'observacoes', label:'Observações', tipo:'textarea', largura:'full' }
+    ],
+    colunasTabela: ['vencimento','_situacao','contrato','fornecedor','descricao','competencia','setor','valor','data_pagamento','status'],
+    rotulos: { _situacao: 'Situação' },
+    colunasInlineSelect: { status: ['A pagar','Pago','Cancelado'] },
+    colunasStatusColorido: ['status','_situacao'],
+    camposDerivados: { _situacao: function(item){ return ciSituacaoBoleto(item); } },
+    filtrosColuna: [
+      { chave:'_situacao', label:'Situação', tipo:'select' },
+      { chave:'status', label:'Status', tipo:'select' },
+      { chave:'contrato', label:'Contrato', tipo:'select' },
+      { chave:'fornecedor', label:'Fornecedor', tipo:'select' },
+      { chave:'setor', label:'Setor', tipo:'select' },
+      { chave:'vencimento', label:'Vencimento', tipo:'daterange' }
+    ],
+    aoAtualizarInline: function(item, chave, valor){ return ciAoMudarStatusBoleto(item, chave, valor); },
+    validar: function(payload){
+      if(/^pago$/i.test(payload.status || '') && !payload.data_pagamento) payload.data_pagamento = hoje();
+      if(/^pago$/i.test(payload.status || '') && (payload.valor_pago === null || payload.valor_pago === undefined)) payload.valor_pago = payload.valor;
+      return null;
+    }
   },
   /* ================= TRILHA PA (ambiente 07) ================= */
   trilha_salas: {
@@ -3871,6 +4159,11 @@ function abrirProcessosJuridico(){ abrirCadSimples('jur_processos'); }
 function abrirProcessosArquivados(){ abrirCadSimples('jur_processos_arquivados'); }
 function abrirMedidasDisciplinares(){ abrirCadSimples('medidas_disciplinares'); }
 function abrirTrilhaSalas(){ abrirCadSimples('trilha_salas'); }
+/* Controle Integrado: contratos e boletos precisam dos aditivos já
+   carregados para calcular vigência/situação nas colunas da lista. */
+function abrirCiContratos(){ ciCarregar().catch(function(){}).then(function(){ abrirCadSimples('ci_contratos'); }); }
+function abrirCiAditivos(){ abrirCadSimples('ci_aditivos'); }
+function abrirCiBoletos(){ abrirCadSimples('ci_boletos'); }
 function abrirTrilhaInstrutores(){ abrirCadSimples('trilha_instrutores'); }
 function abrirTrilhaTreinamentos(){ abrirCadSimples('trilha_treinamentos'); }
 function abrirTrilhaTurmas(){ abrirCadSimples('trilha_turmas'); }
@@ -3925,6 +4218,8 @@ var stateCadSimples = { chave: null, dados: [], editandoId: null, filtros: {} };
 function abrirCadSimples(chave){
   var cfg = CADASTROS_SIMPLES[chave];
   if(!cfg) return;
+  if(stateCadSimples.chave !== chave) stateCadSimples.pasta = null;
+  if($('cs-pastas')){ delete $('cs-pastas').dataset.montado; delete $('cs-pastas').dataset.assinatura; }
   stateCadSimples.chave = chave;
   stateCadSimples.dados = [];
   stateCadSimples.editandoId = null;
@@ -3994,7 +4289,7 @@ function renderCadSimplesCabecalho(cfg){
   var extra = (cfg.tabela === 'usuarios') ? '<th>Senha</th>' : '';
   $('cs-thead').innerHTML = '<tr>' + cfg.colunasTabela.map(function(chaveCampo){
     var campo = cfg.campos.find(function(c){ return c.chave === chaveCampo; });
-    return '<th>' + esc(campo ? campo.label : chaveCampo) + '</th>';
+    return '<th>' + esc(campo ? campo.label : ((cfg.rotulos && cfg.rotulos[chaveCampo]) || chaveCampo)) + '</th>';
   }).join('') + extra + '<th style="width:60px;">Ações</th></tr>';
 }
 
@@ -4087,6 +4382,86 @@ function csAplicarCamposDerivados(cfg){
   });
 }
 
+
+/* ================= PASTAS (cadastros agrupados, ex.: Contratos por setor) =================
+   cfg.pastas = { campo, lista(), resumo(itens) }. Uma pasta por valor da lista,
+   mais "Todos" e, se houver registros com valor fora da lista, "Outros".
+   A pasta aberta filtra a tabela; clicar de novo na pasta aberta fecha. */
+var CS_CORES_PASTA = [
+  ['#2f5f93','#5b8ccc'], ['#1f7a6c','#48a896'], ['#5a3f8c','#8a6bc0'], ['#b35a1f','#dd8a4c'],
+  ['#4f7f23','#7fae4a'], ['#933246','#c45e73'], ['#9a7514','#c9a23c'], ['#3f4a55','#6f7c88']
+];
+function csPastaCor(i){ return CS_CORES_PASTA[i % CS_CORES_PASTA.length]; }
+
+function csAbrirPasta(valor){
+  stateCadSimples.pasta = (stateCadSimples.pasta === valor) ? null : valor;
+  if(!stateCadSimples.pasta) $('cs-filtro-busca').value = '';
+  renderCadSimplesTabela();
+  if(stateCadSimples.pasta){
+    var alvo = $('cs-func-wrap');
+    if(alvo && alvo.scrollIntoView) setTimeout(function(){ alvo.scrollIntoView({ behavior:'smooth', block:'start' }); }, 250);
+  }
+}
+
+function csRenderPastas(cfg){
+  var box = $('cs-pastas');
+  if(!cfg.pastas){ box.style.display = 'none'; box.innerHTML = ''; delete box.dataset.montado; delete box.dataset.assinatura; return; }
+  var pc = cfg.pastas, lista = pc.lista(), dados = stateCadSimples.dados;
+  var grupos = lista.map(function(v, i){ return { valor: v, nome: v, cor: csPastaCor(i), itens: dados.filter(function(d){ return String(d[pc.campo] || '') === v; }) }; });
+  var outros = dados.filter(function(d){ return lista.indexOf(String(d[pc.campo] || '')) < 0; });
+  if(outros.length) grupos.push({ valor:'__outros', nome:'Outros', cor: ['#6b6f75','#9aa0a6'], itens: outros });
+  grupos.unshift({ valor:'__todos', nome:'Todos', cor: csPastaCor(7), itens: dados, todos: true });
+  var aberta = stateCadSimples.pasta;
+  var primeira = !box.dataset.montado;
+  box.style.display = '';
+  /* Mesmas pastas com os mesmos números: só troca as classes, para a capa
+     "abrir" com animação em vez de a pasta ser redesenhada do zero. */
+  var assinatura = grupos.map(function(g){ var r = pc.resumo ? pc.resumo(g.itens) : {}; return g.valor + ':' + g.itens.length + ':' + (r.alertaQtd || 0) + ':' + (r.linhas || []).join('/') + ':' + (r.papel ? r.papel.valor : ''); }).join('|');
+  if(!primeira && box.dataset.assinatura === assinatura){
+    Array.prototype.forEach.call(box.querySelectorAll('.cs-pasta'), function(b){
+      var v = b.getAttribute('data-v');
+      b.classList.remove('entrar');
+      b.classList.toggle('aberta', aberta === v);
+      b.classList.toggle('outra', !!aberta && aberta !== v);
+      b.setAttribute('aria-pressed', String(aberta === v));
+    });
+    var dica = box.querySelector('.cs-pastas-dica');
+    if(aberta && dica) dica.remove();
+    if(!aberta && !dica) box.insertAdjacentHTML('beforeend', '<div class="cs-pastas-dica">Abra uma pasta para ver os contratos do setor, ou digite na busca para procurar em todas.</div>');
+    return;
+  }
+  box.dataset.assinatura = assinatura;
+  box.innerHTML = '<div class="cs-pastas-grade">' + grupos.map(function(g, i){
+    var r = pc.resumo ? pc.resumo(g.itens) : { linhas: [] };
+    return '<button type="button" class="cs-pasta' + (aberta === g.valor ? ' aberta' : '') + (aberta && aberta !== g.valor ? ' outra' : '') + (!g.itens.length ? ' vazia' : '') + (primeira ? ' entrar' : '') + '"'
+      + ' style="--c1:' + g.cor[0] + ';--c2:' + g.cor[1] + ';animation-delay:' + (i * 55) + 'ms;" onclick="csAbrirPasta(this.dataset.v)" data-v="' + esc(g.valor) + '"'
+      + ' aria-pressed="' + (aberta === g.valor) + '" title="' + esc(g.nome) + ': ' + g.itens.length + ' registro(s)">'
+      + '<span class="cs-pasta-costas"></span>'
+      + '<span class="cs-pasta-folhas"><i></i><i></i><i>' + (r.papel ? '<span class="cs-pasta-papel"><small>' + esc(r.papel.rotulo) + '</small><b>' + esc(r.papel.valor) + '</b>' + (r.papel.extra ? '<em>' + esc(r.papel.extra) + '</em>' : '') + '</span>' : '') + '</i></span>'
+      + '<span class="cs-pasta-frente">'
+        + (r.alerta ? '<span class="cs-pasta-alerta" title="' + esc(r.alerta) + '">' + esc(r.alertaQtd) + '</span>' : '')
+        + '<span class="cs-pasta-nome">' + esc(g.nome) + '</span>'
+        + '<span class="cs-pasta-qtd"><b>' + g.itens.length + '</b> ' + (g.itens.length === 1 ? 'contrato' : 'contratos') + '</span>'
+        + (r.linhas || []).map(function(l){ return '<span class="cs-pasta-info">' + esc(l) + '</span>'; }).join('')
+      + '</span></button>';
+  }).join('') + '</div>'
+  + (aberta ? '' : '<div class="cs-pastas-dica">Abra uma pasta para ver os contratos do setor, ou digite na busca para procurar em todas.</div>');
+  box.dataset.montado = '1';
+}
+
+/* resumo mostrado na frente de cada pasta do Controle Integrado */
+function ciResumoPasta(itens){
+  var ativos = itens.filter(ciContratoAtivo);
+  var mensal = ativos.reduce(function(s,c){ var e = ciContratoEfetivo(c), p = ciPassoMeses(c); return s + (p ? e.parcelaAtual / p : 0); }, 0);
+  var alerta = itens.filter(function(c){ return /^vence|^venceu/i.test(ciSituacaoContrato(c)); }).length;
+  var total = itens.reduce(function(s,c){ return s + (ciContratoEfetivo(c).valorAtual || 0); }, 0);
+  return {
+    linhas: [ativos.length + ' ativo(s)', mensal ? ciMoeda(mensal) + '/mês' : ''].filter(Boolean),
+    alerta: alerta ? alerta + ' contrato(s) vencendo ou vencido(s)' : '', alertaQtd: alerta,
+    papel: { rotulo: 'Total dos contratos', valor: ciMoeda(total), extra: 'valor atualizado, com aditivos' }
+  };
+}
+
 function csFiltroSelectChange(chave, valor){
   if(valor){ stateCadSimples.filtros[chave] = valor; }
   else { delete stateCadSimples.filtros[chave]; }
@@ -4131,6 +4506,15 @@ function corStatusBadge(valor){
   var t = String(valor || '').toUpperCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
   var original = String(valor || '').toUpperCase().trim();
   if(!t && !original) return null;
+  /* Controle Integrado - contratos e boletos */
+  if(/^VENCIDO HA|^VENCEU HA/.test(t)) return { bg:'#fdecea', fg:'#d03b3b' };
+  if(/^VENCE HOJE/.test(t)) return { bg:'#fff1db', fg:'#b45309' };
+  if(/^VENCE EM (\d+)/.test(t)){ var dd = parseInt(t.match(/^VENCE EM (\d+)/)[1], 10); return dd <= 7 ? { bg:'#fdf3e0', fg:'#c07a00' } : { bg:'#e0f2fe', fg:'#0369a1' }; }
+  if(/^VIGENTE$/.test(t)) return { bg:'#e7f6e2', fg:'#0d8a2e' };
+  if(/^EM RENOVACAO$/.test(t)) return { bg:'#fdf3e0', fg:'#c07a00' };
+  if(/^ENCERRADO$|^SUSPENSO$/.test(t)) return { bg:'#f0f0f0', fg:'#7a7a7a' };
+  if(/^A PAGAR$/.test(t)) return { bg:'#e0f2fe', fg:'#0369a1' };
+  if(/^PAGO$/.test(t)) return { bg:'#e7f6e2', fg:'#0d8a2e' };
   /* Recep\u00e7\u00e3o \u2014 status de agendamentos */
   if(/\bAGENDADO\b/.test(t)) return { bg:'#e0f2fe', fg:'#0369a1' };                  /* Azul */
   if(/NAO\s+COMPARECEU|N\u00c3O\s+COMPARECEU/.test(t) || /N\u00c3O\s+COMPARECEU/.test(original)) return { bg:'#fde8e8', fg:'#d03b3b' };                /* Vermelho */
@@ -4204,9 +4588,16 @@ async function csAtualizarCampoInline(id, chave, valorNovo){
   }
   try{
     var payload = {}; payload[chave] = valorNovo || null;
+    /* aoAtualizarInline: o cadastro pode completar outros campos junto
+       (ex.: boleto marcado como Pago ganha data e valor do pagamento). */
+    if(typeof cfg.aoAtualizarInline === 'function'){
+      var extra = cfg.aoAtualizarInline(item, chave, valorNovo) || {};
+      Object.keys(extra).forEach(function(k){ payload[k] = extra[k]; item[k] = extra[k]; });
+    }
     var resp = await sbClient.from(cfg.tabela).update(payload).eq('id', id);
     if(resp.error) throw resp.error;
     toast(cfg.titulo + ' atualizado(a).');
+    if(cfg.camposDerivados){ csAplicarCamposDerivados(cfg); renderCadSimplesTabela(); }
     if(cfg.filtrosColuna) renderCsFiltroColunas(cfg);
 
     /* Se é Processos Ativos e status muda de ATIVO pra outro, transferir para Arquivados */
@@ -4295,7 +4686,24 @@ function renderCadSimplesTabela(){
   if(!cfg) return;
   var busca = ($('cs-filtro-busca').value || '').trim().toLowerCase();
   var filtros = stateCadSimples.filtros || {};
+  /* Cadastros com pastas (ex.: Contratos por setor): sem pasta aberta, mostra
+     só as pastas; digitar na busca procura em todas. */
+  var pastaCfg = cfg.pastas || null;
+  if(pastaCfg && !stateCadSimples.pasta && busca) stateCadSimples.pasta = '__todos';
+  csRenderPastas(cfg);
+  if(pastaCfg && !stateCadSimples.pasta){
+    $('cs-func-wrap').style.display = 'none';
+    $('cs-filtro-count').textContent = '';
+    return;
+  }
+  $('cs-func-wrap').style.display = '';
+  var listaPastas = pastaCfg ? pastaCfg.lista() : null;
   var lista = stateCadSimples.dados.filter(function(item){
+    if(pastaCfg && stateCadSimples.pasta !== '__todos'){
+      var vp = String(item[pastaCfg.campo] || '');
+      if(stateCadSimples.pasta === '__outros'){ if(listaPastas.indexOf(vp) >= 0) return false; }
+      else if(vp !== stateCadSimples.pasta) return false;
+    }
     if(busca && !cfg.campoBusca.some(function(chaveCampo){
       return String(item[chaveCampo] || '').toLowerCase().indexOf(busca) >= 0;
     })) return false;
@@ -4374,6 +4782,11 @@ function renderCadSimplesTabela(){
       else if(campo && campo.tipo === 'number' && campo.semMoeda){ txt = Number(val).toLocaleString('pt-BR', { maximumFractionDigits:2 }); }
       else if(campo && campo.tipo === 'number'){ txt = fmtValorBR(val) || '-'; }
       else { txt = esc(val); }
+      /* coluna colorida que não é editável na linha (ex.: Situação calculada) vira etiqueta */
+      if(cfg.colunasStatusColorido && cfg.colunasStatusColorido.indexOf(chaveCampo) >= 0 && txt !== '-'){
+        var corB = corStatusBadge(val);
+        if(corB) txt = '<span style="display:inline-block;padding:3px 9px;border-radius:12px;font-size:11.5px;font-weight:600;white-space:nowrap;background:' + corB.bg + ';color:' + corB.fg + ';">' + txt + '</span>';
+      }
       return '<td>' + txt + '</td>';
     }).join('');
     var extraTd = '';
@@ -4474,7 +4887,7 @@ function csCampoHtml(c, item){
   } else if(c.tipo === 'textarea'){
     inputHtml = '<textarea id="cs-f-' + c.chave + '" class="cs-input" rows="3">' + esc(val) + '</textarea>';
   } else if(c.tipo === 'date'){
-    inputHtml = '<input type="date" id="cs-f-' + c.chave + '" class="cs-input" value="' + esc(val) + '">';
+    inputHtml = '<input type="date" id="cs-f-' + c.chave + '" class="cs-input" value="' + esc(val) + '"' + (c.somenteLeitura ? ' readonly tabindex="-1" style="background:#f3f5f7;color:#555;"' : '') + '>';
   } else if(c.tipo === 'number'){
     var valFmt = (val === '' || val === null) ? '' : Number(val).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
     inputHtml = '<input type="text" id="cs-f-' + c.chave + '" class="cs-input" value="' + esc(valFmt) + '" placeholder="0,00">';
@@ -4685,6 +5098,7 @@ function csCarregarSelectDinamico(c){
         var dados = result.data || [];
         var filtro = c.filtroFonte || {};
         dados = dados.filter(function(d){
+          if(typeof filtro === 'function') return filtro(d);
           for(var k in filtro){
             if(d[k] !== filtro[k]) return false;
           }
@@ -4698,12 +5112,34 @@ function csCarregarSelectDinamico(c){
           var v = d[c.campoFonte];
           if(v === null || v === undefined || v === '') return;
           if(String(v) === atual) achou = true;
-          html += '<option value="' + esc(v) + '"' + (String(v) === atual ? ' selected' : '') + '>' + esc(v) + '</option>';
+          var rotulo = c.rotuloFonte ? c.rotuloFonte(d) : v;
+          html += '<option value="' + esc(v) + '"' + (String(v) === atual ? ' selected' : '') + '>' + esc(rotulo) + '</option>';
         });
         /* Valor gravado que não está mais na lista (ex.: sala desativada) continua
            aparecendo, pra não ser apagado sem querer ao salvar. */
         if(atual && !achou) html += '<option value="' + esc(atual) + '" selected>' + esc(atual) + ' (inativo)</option>';
         selectEl.innerHTML = html;
+        /* preencheDaFonte: { campoDoForm: 'colunaDaFonte' | function(linha) } -
+           ao ESCOLHER um item (não ao abrir para editar), copia dados dele
+           para outros campos do formulário (ex.: boleto herda fornecedor,
+           setor e valor da parcela do contrato). */
+        if(c.preencheDaFonte){
+          selectEl.onchange = function(){
+            var linha = dados.find(function(d){ return String(d[c.campoFonte]) === selectEl.value; });
+            if(!linha) return;
+            Object.keys(c.preencheDaFonte).forEach(function(k){
+              var el = $('cs-f-' + k); if(!el) return;
+              var origem = c.preencheDaFonte[k];
+              var v = typeof origem === 'function' ? origem(linha) : linha[origem];
+              if(v === null || v === undefined) return;
+              var campoDest = (CADASTROS_SIMPLES[stateCadSimples.chave].campos || []).find(function(x){ return x.chave === k; });
+              if(campoDest && campoDest.tipo === 'number' && !campoDest.semMoeda) v = Number(v).toLocaleString('pt-BR', { minimumFractionDigits:2, maximumFractionDigits:2 });
+              /* em lista suspensa, só preenche se o valor existir na lista */
+              if(el.tagName === 'SELECT' && !Array.prototype.some.call(el.options, function(op){ return op.value === String(v); })) return;
+              el.value = v;
+            });
+          };
+        }
       } catch(err) {
         console.error('Erro ao processar resultado do select:', err);
       }
@@ -4761,6 +5197,7 @@ function csAtualizarAutocomplete(c, cfg, busca){
         var dados = result.data || [];
         var filtro = c.filtroFonte || {};
         dados = dados.filter(function(d){
+          if(typeof filtro === 'function') return filtro(d);
           for(var k in filtro){
             if(d[k] !== filtro[k]) return false;
           }
@@ -4848,6 +5285,10 @@ function csAbrirNovo(){
     openDlg('dlg-cad-simples');
     /* Inicializar campos após o diálogo estar visível */
     csInicializarCamposEspeciais(cfg);
+    if(typeof cfg.aoAbrirForm === 'function') cfg.aoAbrirForm();
+    if(cfg.pastas && stateCadSimples.pasta && stateCadSimples.pasta.indexOf('__') !== 0){
+      var elPasta = $('cs-f-' + cfg.pastas.campo); if(elPasta) elPasta.value = stateCadSimples.pasta;
+    }
   } catch(err) {
     console.error('Erro ao abrir novo cadastro:', err);
     console.error('Stack:', err.stack);
@@ -4864,6 +5305,7 @@ function csAbrirEditar(id){
   $('cs-dlg-titulo').textContent = 'Editar - ' + cfg.titulo;
   $('cs-dlg-form').innerHTML = csMontarForm(cfg, item);
   csInicializarCamposEspeciais(cfg);
+  if(typeof cfg.aoAbrirForm === 'function') cfg.aoAbrirForm();
   openDlg('dlg-cad-simples');
 }
 
@@ -10721,6 +11163,666 @@ function renderTrilhaVencer(){
         }).join('') + '</tbody></table></div>';
 
   el.innerHTML = filtros + kpis + '<div class="viz-grid full">' + trilhaCard('Reciclagens necessárias', 'Última conclusão de cada colaborador + validade do treinamento', tabela) + '</div>';
+}
+
+/* =====================================================================
+   CONTROLE INTEGRADO (ambiente 08)
+   Contratos (ci_contratos), aditivos (ci_aditivos) e boletos (ci_boletos).
+   Regras centrais, usadas em todas as telas:
+     - Vigência efetiva = término do contrato ajustado pelos aditivos de
+       prazo, em ordem de assinatura (nova data de término, ou meses somados).
+     - Valor atualizado = valor total + soma dos acréscimos/supressões.
+     - Parcela atual = último "novo valor da parcela" dos aditivos, ou a do contrato.
+     - Boleto "vencido" = status A pagar e vencimento antes de hoje (não é
+       gravado: é calculado na hora, então nunca fica desatualizado).
+   ===================================================================== */
+var ciCache = { contratos: [], aditivos: [], boletos: [], carregadoEm: 0 };
+
+async function ciCarregar(){
+  var r = await Promise.all([
+    dpSelecionarTudo('ci_contratos', 'numero'),
+    dpSelecionarTudo('ci_aditivos', 'data_assinatura'),
+    dpSelecionarTudo('ci_boletos', 'vencimento')
+  ]);
+  var erro = r[0].error || r[1].error || r[2].error;
+  if(erro) throw erro;
+  ciCache.contratos = r[0].data || [];
+  ciCache.aditivos = r[1].data || [];
+  ciCache.boletos = r[2].data || [];
+  ciCache.carregadoEm = Date.now();
+  return ciCache;
+}
+
+/* ---------- datas ---------- */
+function ciISO(d){ return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+function ciData(iso){ if(!iso) return null; var p = String(iso).slice(0, 10).split('-'); if(p.length < 3) return null; return new Date(+p[0], +p[1] - 1, +p[2]); }
+function ciSomarMeses(iso, n){
+  var d = ciData(iso); if(!d) return null;
+  var dia = d.getDate();
+  d.setDate(1); d.setMonth(d.getMonth() + n);
+  var ultimo = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+  d.setDate(Math.min(dia, ultimo));
+  return ciISO(d);
+}
+function ciSomarDias(iso, n){ var d = ciData(iso); d.setDate(d.getDate() + n); return ciISO(d); }
+function ciDiasAte(iso){ var d = ciData(iso); if(!d) return null; var h = ciData(hoje()); return Math.round((d - h) / 86400000); }
+function ciMoeda(v){ return fmtValorBR(Number(v) || 0) || 'R$ 0,00'; }
+function ciMesAno(iso){ var d = ciData(iso); return String(d.getMonth() + 1).padStart(2, '0') + '/' + d.getFullYear(); }
+
+/* ---------- contrato efetivo (com aditivos) ---------- */
+function ciFimOriginal(c){
+  /* início + duração manda; a data gravada só vale se faltar um dos dois
+     (evita término "velho" quando a duração é alterada depois) */
+  if(c.data_inicio && c.duracao_meses) return ciSomarDias(ciSomarMeses(c.data_inicio, parseInt(c.duracao_meses, 10)), -1);
+  return c.data_fim || null;
+}
+function ciAditivosDe(numero){
+  var k = String(numero || '').trim();
+  return (ciCache.aditivos || []).filter(function(a){ return String(a.contrato || '').trim() === k; })
+    .sort(function(a,b){ return String(a.data_assinatura || '').localeCompare(String(b.data_assinatura || '')) || (a.id - b.id); });
+}
+function ciContratoEfetivo(c){
+  var fim = ciFimOriginal(c);
+  var valor = Number(c.valor_total) || 0;
+  var parcela = Number(c.valor_parcela) || 0;
+  var ads = ciAditivosDe(c.numero);
+  ads.forEach(function(a){
+    if(a.nova_data_fim) fim = a.nova_data_fim;
+    else if(a.meses_acrescidos && fim) fim = ciSomarMeses(fim, parseInt(a.meses_acrescidos, 10));
+    if(a.valor_acrescimo !== null && a.valor_acrescimo !== undefined) valor += Number(a.valor_acrescimo) || 0;
+    if(a.novo_valor_parcela) parcela = Number(a.novo_valor_parcela);
+  });
+  return { fim: fim, fimOriginal: ciFimOriginal(c), valorOriginal: Number(c.valor_total) || 0, valorAtual: valor, parcelaAtual: parcela, aditivos: ads };
+}
+function ciContratoAtivo(c){ return !/encerrad|suspens/i.test(c.status || ''); }
+
+function ciSituacaoContrato(c){
+  if(/encerrad/i.test(c.status || '')) return 'Encerrado';
+  if(/suspens/i.test(c.status || '')) return 'Suspenso';
+  var e = ciContratoEfetivo(c);
+  if(!e.fim) return '-';
+  var d = ciDiasAte(e.fim);
+  if(d < 0) return 'Venceu há ' + Math.abs(d) + ' dia(s)';
+  if(d === 0) return 'Vence hoje';
+  if(d <= (parseInt(c.alerta_dias, 10) || 30)) return 'Vence em ' + d + ' dia(s)';
+  return 'Vigente';
+}
+function ciSituacaoBoleto(b){
+  if(/^pago$/i.test(b.status || '')) return 'Pago';
+  if(/cancel/i.test(b.status || '')) return 'Cancelado';
+  var d = ciDiasAte(b.vencimento);
+  if(d === null) return 'A pagar';
+  if(d < 0) return 'Vencido há ' + Math.abs(d) + ' dia(s)';
+  if(d === 0) return 'Vence hoje';
+  if(d <= 30) return 'Vence em ' + d + ' dia(s)';
+  return 'A pagar';
+}
+function ciBoletoEmAberto(b){ return !/^pago$|cancel/i.test(b.status || ''); }
+
+function ciValidarContrato(payload, editandoId){
+  var num = String(payload.numero || '').trim();
+  var dup = stateCadSimples.dados.find(function(c){ return String(c.numero || '').trim().toUpperCase() === num.toUpperCase() && String(c.id) !== String(editandoId || ''); });
+  if(dup) return 'Já existe um contrato com o número "' + num + '".';
+  if(payload.data_inicio && payload.duracao_meses)
+    payload.data_fim = ciSomarDias(ciSomarMeses(payload.data_inicio, parseInt(payload.duracao_meses, 10)), -1);
+  if(payload.data_fim && payload.data_inicio && payload.data_fim < payload.data_inicio) return 'O término não pode ser antes do início.';
+  if(payload.dia_pagamento && (payload.dia_pagamento < 1 || payload.dia_pagamento > 31)) return 'O dia de pagamento deve ser entre 1 e 31.';
+  if(payload.alerta_dias === null || payload.alerta_dias === undefined) payload.alerta_dias = 30;
+  return null;
+}
+function ciAoMudarStatusBoleto(item, chave, valor){
+  if(chave !== 'status') return null;
+  if(/^pago$/i.test(valor || '')) return { data_pagamento: item.data_pagamento || hoje(), valor_pago: item.valor_pago || item.valor };
+  return { data_pagamento: null, valor_pago: null };
+}
+
+/* ---------- moldura das telas (usa a view-dashboard) ---------- */
+function ciMostrarPainel(crumb, titulo){
+  trilhaMostrarPainel(crumb, titulo);
+  $('dash-crumb').textContent = 'Controle Integrado > ' + crumb;
+}
+function ciErro(erro){
+  $('viz-conteudo').innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Não foi possível carregar os dados do Controle Integrado.<br><small>'
+    + esc(dpFormatarErroSupabase('Supabase', erro)) + '</small><br><small>Confira se as tabelas ci_contratos, ci_aditivos e ci_boletos foram criadas no Supabase.</small></div>';
+  console.error(erro);
+}
+function ciBadge(texto){
+  var cor = corStatusBadge(texto) || { bg:'#eceef0', fg:'#5a6570' };
+  return '<span class="ci-badge" style="background:' + cor.bg + ';color:' + cor.fg + ';">' + esc(texto) + '</span>';
+}
+function ciSelect(id, rotuloTodos, lista, sel, onchange){
+  return '<select class="mesnav-select" id="' + id + '" onchange="' + onchange + '"><option value="">' + rotuloTodos + '</option>'
+    + lista.map(function(v){ return '<option value="' + esc(v) + '"' + (v === sel ? ' selected' : '') + '>' + esc(v) + '</option>'; }).join('') + '</select>';
+}
+function ciDistintos(lista, campo){
+  var set = {}; lista.forEach(function(i){ var v = String(i[campo] || '').trim(); if(v) set[v] = true; });
+  return Object.keys(set).sort(function(a,b){ return a.localeCompare(b, 'pt-BR', { numeric:true }); });
+}
+function ciContratoPorNumero(num){ var k = String(num || '').trim(); return ciCache.contratos.find(function(c){ return String(c.numero || '').trim() === k; }); }
+
+async function ciMarcarPago(id, aoTerminar){
+  var b = ciCache.boletos.find(function(x){ return String(x.id) === String(id); });
+  if(!b) return;
+  if(!confirm('Marcar como PAGO o boleto de ' + ciMoeda(b.valor) + ' (' + (b.fornecedor || '') + ', vencimento ' + fmtBR(b.vencimento) + ')?\n\nData do pagamento: hoje.')) return;
+  var dados = { status:'Pago', data_pagamento: hoje(), valor_pago: b.valor_pago || b.valor };
+  var resp = await sbClient.from('ci_boletos').update(dados).eq('id', b.id);
+  if(resp.error){ toast(dpFormatarErroSupabase('Não foi possível marcar como pago', resp.error), true, 9000); return; }
+  Object.assign(b, dados);
+  toast('Boleto marcado como pago.');
+  if(typeof aoTerminar === 'function') aoTerminar();
+}
+
+/* =====================================================================
+   CENTRAL DE ALERTAS
+   ===================================================================== */
+var stateCiAlertas = { janela: 7, setor: '', responsavel: '', nivel: '' };
+
+function ciGerarAlertas(janela){
+  var alertas = [];
+  var hj = hoje();
+  ciCache.boletos.forEach(function(b){
+    if(!ciBoletoEmAberto(b) || !b.vencimento) return;
+    var d = ciDiasAte(b.vencimento);
+    var c = ciContratoPorNumero(b.contrato);
+    var base = { tipo:'boleto', id:b.id, setor: b.setor || (c && c.setor) || '', responsavel: (c && c.responsavel) || '', valor: Number(b.valor) || 0, dias: d, data: b.vencimento,
+                 titulo: (b.fornecedor || 'Boleto') + (b.descricao ? ' - ' + b.descricao : ''), ref: b.contrato ? 'Contrato ' + b.contrato : 'Sem contrato' };
+    if(d < 0) alertas.push(Object.assign(base, { nivel:'critico', rotulo:'Boleto vencido há ' + Math.abs(d) + ' dia(s)' }));
+    else if(d === 0) alertas.push(Object.assign(base, { nivel:'alto', rotulo:'Boleto vence hoje' }));
+    else if(d <= janela) alertas.push(Object.assign(base, { nivel:'medio', rotulo:'Boleto vence em ' + d + ' dia(s)' }));
+  });
+  ciCache.contratos.forEach(function(c){
+    if(!ciContratoAtivo(c)) return;
+    var e = ciContratoEfetivo(c);
+    var base = { tipo:'contrato', numero:c.numero, setor:c.setor || '', responsavel:c.responsavel || '', valor: e.valorAtual, titulo: c.numero + ' - ' + (c.fornecedor || '') , ref: c.objeto || '' };
+    if(e.fim){
+      var d = ciDiasAte(e.fim), lim = parseInt(c.alerta_dias, 10) || 30;
+      if(d < 0) alertas.push(Object.assign({}, base, { nivel:'critico', dias:d, data:e.fim, rotulo:'Contrato vencido há ' + Math.abs(d) + ' dia(s) e ainda marcado como ' + (c.status || 'Vigente') }));
+      else if(d <= lim) alertas.push(Object.assign({}, base, { nivel: d <= 15 ? 'alto' : 'medio', dias:d, data:e.fim, rotulo: d === 0 ? 'Contrato vence hoje' : 'Contrato vence em ' + d + ' dia(s) - renovar ou encerrar' }));
+    }
+    if(c.data_reajuste && !/sem reajuste/i.test(c.indice_reajuste || '')){
+      var dr = ciDiasAte(c.data_reajuste);
+      if(dr < 0 && dr >= -60) alertas.push(Object.assign({}, base, { nivel:'medio', dias:dr, data:c.data_reajuste, rotulo:'Reajuste (' + (c.indice_reajuste || 'índice') + ') previsto há ' + Math.abs(dr) + ' dia(s) - atualize o valor ou a data' }));
+      else if(dr >= 0 && dr <= 30) alertas.push(Object.assign({}, base, { nivel:'info', dias:dr, data:c.data_reajuste, rotulo:'Reajuste (' + (c.indice_reajuste || 'índice') + ') em ' + dr + ' dia(s)' }));
+    }
+    /* contrato recorrente sem boleto lançado para os próximos 30 dias */
+    if(!/unica/i.test(normalizeHeader(c.periodicidade)) && (!e.fim || ciDiasAte(e.fim) > 30)){
+      var limite = ciSomarDias(hj, 30);
+      var temBoleto = ciCache.boletos.some(function(b){ return String(b.contrato || '').trim() === String(c.numero).trim() && b.vencimento >= hj && b.vencimento <= limite && !/cancel/i.test(b.status || ''); });
+      if(!temBoleto && (Number(c.valor_parcela) || e.parcelaAtual)) alertas.push(Object.assign({}, base, { nivel:'info', dias:null, data:null, valor: e.parcelaAtual, rotulo:'Nenhum boleto lançado para os próximos 30 dias', acaoGerar:true }));
+    }
+  });
+  var peso = { critico:0, alto:1, medio:2, info:3 };
+  return alertas.sort(function(a,b){ return (peso[a.nivel] - peso[b.nivel]) || ((a.dias === null ? 9999 : a.dias) - (b.dias === null ? 9999 : b.dias)); });
+}
+
+function abrirCiAlertas(){
+  ciMostrarPainel('Alertas e Painéis', 'Central de Alertas');
+  ciCarregar().then(renderCiAlertas).catch(ciErro);
+}
+function ciAlFiltro(k, v){ stateCiAlertas[k] = (k === 'janela') ? parseInt(v, 10) : v; renderCiAlertas(); }
+
+function renderCiAlertas(){
+  var el = $('viz-conteudo');
+  var todos = ciGerarAlertas(stateCiAlertas.janela);
+  var f = stateCiAlertas;
+  var lista = todos.filter(function(a){
+    return (!f.setor || a.setor === f.setor) && (!f.responsavel || a.responsavel === f.responsavel) && (!f.nivel || a.nivel === f.nivel);
+  });
+  var soma = function(arr){ return arr.reduce(function(s,a){ return s + (a.valor || 0); }, 0); };
+  var vencidos = lista.filter(function(a){ return a.tipo === 'boleto' && a.dias < 0; });
+  var proximos = lista.filter(function(a){ return a.tipo === 'boleto' && a.dias >= 0; });
+  var contratos = lista.filter(function(a){ return a.tipo === 'contrato' && /vence|vencido/i.test(a.rotulo); });
+  var outros = lista.filter(function(a){ return a.tipo === 'contrato' && !/vence|vencido/i.test(a.rotulo); });
+
+  var filtros = trilhaFiltrosTopo([
+    ['Boletos vencendo em até:', '<select class="mesnav-select" onchange="ciAlFiltro(\'janela\', this.value)">'
+      + [3, 7, 15, 30].map(function(d){ return '<option value="' + d + '"' + (d === f.janela ? ' selected' : '') + '>' + d + ' dias</option>'; }).join('') + '</select>'],
+    ['Setor:', ciSelect('ci-al-setor', 'Todos', ciDistintos(todos, 'setor'), f.setor, "ciAlFiltro('setor', this.value)")],
+    ['Responsável:', ciSelect('ci-al-resp', 'Todos', ciDistintos(todos, 'responsavel'), f.responsavel, "ciAlFiltro('responsavel', this.value)")],
+    ['Prioridade:', '<select class="mesnav-select" onchange="ciAlFiltro(\'nivel\', this.value)">'
+      + [['','Todas'],['critico','Crítica'],['alto','Alta'],['medio','Média'],['info','Informativa']].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === f.nivel ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>']
+  ]);
+  var kpis = vizKpiRow([
+    { label:'Boletos vencidos', value: fmtNum(vencidos.length), sub: ciMoeda(soma(vencidos)), subClass: vencidos.length ? 'neg' : '' },
+    { label:'Vencem em até ' + f.janela + ' dias', value: fmtNum(proximos.length), sub: ciMoeda(soma(proximos)) },
+    { label:'Contratos a vencer / vencidos', value: fmtNum(contratos.length) },
+    { label:'Reajustes e lembretes', value: fmtNum(outros.length) }
+  ]);
+
+  var nomeNivel = { critico:'Crítico', alto:'Alto', medio:'Médio', info:'Info' };
+  var cards = !lista.length
+    ? '<div class="ci-tudo-certo"><div class="ci-tudo-certo-ic">✓</div><b>Nada pendente por aqui.</b><br>Nenhum boleto vencido ou a vencer em ' + f.janela + ' dias e nenhum contrato perto do fim.</div>'
+    : lista.map(function(a){
+        var acao = a.tipo === 'boleto'
+          ? '<button class="btn" onclick="ciMarcarPago(' + a.id + ', renderCiAlertas)">✓ Marcar como pago</button>'
+          : (a.acaoGerar ? '<button class="btn" onclick="abrirCiGerarBoletos(\'' + esc(a.numero) + '\')">Gerar boletos</button>' : '')
+            + '<button class="btn" onclick="abrirCiFicha(\'' + esc(a.numero) + '\')">Abrir ficha</button>';
+        return '<div class="ci-alerta nivel-' + a.nivel + '">'
+          + '<div class="ci-alerta-nivel">' + nomeNivel[a.nivel] + '</div>'
+          + '<div class="ci-alerta-corpo"><div class="ci-alerta-rot">' + esc(a.rotulo) + '</div>'
+            + '<div class="ci-alerta-tit">' + esc(a.titulo) + '</div>'
+            + '<div class="ci-alerta-meta">' + [a.ref, a.setor ? 'Setor ' + a.setor : '', a.responsavel ? 'Resp.: ' + a.responsavel : '', a.data ? fmtBR(a.data) : ''].filter(Boolean).map(esc).join(' | ') + '</div></div>'
+          + '<div class="ci-alerta-valor">' + (a.valor ? ciMoeda(a.valor) : '') + '</div>'
+          + '<div class="ci-alerta-acoes">' + acao + '</div></div>';
+      }).join('');
+  el.innerHTML = filtros + kpis + '<div class="viz-grid full">' + trilhaCard('Alertas', lista.length + ' alerta(s), do mais urgente para o menos urgente', cards) + '</div>';
+}
+
+/* Resumo que aparece sozinho ao entrar no ambiente */
+function ciAoEntrarNoAmbiente(a){
+  var velho = $('ci-aviso-entrada'); if(velho) velho.remove();
+  if(!a || a.codigo !== '08') return;
+  ciCarregar().then(function(){
+    var al = ciGerarAlertas(7);
+    var venc = al.filter(function(x){ return x.tipo === 'boleto' && x.dias < 0; });
+    var hojeB = al.filter(function(x){ return x.tipo === 'boleto' && x.dias === 0; });
+    var semana = al.filter(function(x){ return x.tipo === 'boleto' && x.dias > 0; });
+    var contr = al.filter(function(x){ return x.tipo === 'contrato' && /vence|vencido/i.test(x.rotulo); });
+    if(!venc.length && !hojeB.length && !semana.length && !contr.length) return;
+    var soma = function(arr){ return ciMoeda(arr.reduce(function(s,x){ return s + (x.valor || 0); }, 0)); };
+    var linhas = [];
+    if(venc.length) linhas.push('<li class="c">' + venc.length + ' boleto(s) <b>vencido(s)</b> - ' + soma(venc) + '</li>');
+    if(hojeB.length) linhas.push('<li class="a">' + hojeB.length + ' boleto(s) vence(m) <b>hoje</b> - ' + soma(hojeB) + '</li>');
+    if(semana.length) linhas.push('<li class="m">' + semana.length + ' boleto(s) nos próximos 7 dias - ' + soma(semana) + '</li>');
+    if(contr.length) linhas.push('<li class="m">' + contr.length + ' contrato(s) perto do fim ou vencido(s)</li>');
+    var div = document.createElement('div');
+    div.id = 'ci-aviso-entrada';
+    div.className = 'ci-aviso-entrada';
+    div.innerHTML = '<button class="x" onclick="this.parentNode.remove()" aria-label="Fechar">✕</button>'
+      + '<div class="t">🔔 Atenção hoje</div><ul>' + linhas.join('') + '</ul>'
+      + '<button class="btn primary" onclick="document.getElementById(\'ci-aviso-entrada\').remove();acionarRotina(\'Alertas e Painéis::Central de Alertas\')">Ver Central de Alertas</button>';
+    document.body.appendChild(div);
+  }).catch(function(e){ console.warn('Controle Integrado: alertas de entrada indisponíveis', e); });
+}
+
+/* =====================================================================
+   GERAR BOLETOS DO CONTRATO
+   ===================================================================== */
+var stateCiGerar = { numero:'', qtd: 12, primeiro:'', valor:'', fimDeSemana:'manter', prefixo:'Parcela', passadas:'apagar' };
+
+/* meses (arredondando para cima) entre duas datas: 01/09/2026 -> 01/09/2027 = 12 */
+function ciMesesEntre(a, b){
+  var d1 = ciData(a), d2 = ciData(b); if(!d1 || !d2 || d2 <= d1) return 0;
+  var m = (d2.getFullYear() - d1.getFullYear()) * 12 + (d2.getMonth() - d1.getMonth()) - (d2.getDate() < d1.getDate() ? 1 : 0);
+  if(ciSomarMeses(a, m) < b) m++;
+  return m;
+}
+
+function abrirCiGerarBoletos(numero){
+  if(typeof numero === 'string' && numero) stateCiGerar.numero = numero;
+  ciMostrarPainel('Contas a Pagar', 'Gerar Boletos do Contrato');
+  ciCarregar().then(function(){ ciGerarPreencherPadrao(); renderCiGerar(); }).catch(ciErro);
+}
+function ciPassoMeses(c){
+  var p = normalizeHeader(c.periodicidade || 'mensal');
+  if(/bimestral/.test(p)) return 2; if(/trimestral/.test(p)) return 3; if(/semestral/.test(p)) return 6; if(/anual/.test(p)) return 12; if(/unica/.test(p)) return 0;
+  return 1;
+}
+function ciGerarPreencherPadrao(){
+  var c = ciContratoPorNumero(stateCiGerar.numero);
+  if(!c) return;
+  var e = ciContratoEfetivo(c);
+  var passo = ciPassoMeses(c);
+  var hj = hoje();
+  /* 1º vencimento = primeiro "dia de pagamento" a partir do INÍCIO do contrato
+     (antes contava a partir de hoje e a parcela do mês já passado sumia:
+     12 meses viravam 11). Parcelas que já passaram aparecem marcadas na
+     prévia, e você escolhe o que fazer com elas. */
+  var base = c.data_inicio || hj;
+  var d = ciData(base);
+  var dia = parseInt(c.dia_pagamento, 10) || d.getDate();
+  var cand = new Date(d.getFullYear(), d.getMonth(), Math.min(dia, new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate()));
+  if(ciISO(cand) < base){ cand = new Date(d.getFullYear(), d.getMonth() + 1, 1); cand.setDate(Math.min(dia, new Date(cand.getFullYear(), cand.getMonth() + 1, 0).getDate())); }
+  stateCiGerar.primeiro = ciISO(cand);
+  stateCiGerar.valor = e.parcelaAtual ? String(e.parcelaAtual) : '';
+  /* quantidade = meses de vigência (com aditivos de prazo) / periodicidade */
+  var meses = (c.data_inicio && e.fim) ? Math.max(1, Math.round((ciData(ciSomarDias(e.fim, 1)) - ciData(c.data_inicio)) / 86400000 / 30.4375)) : (parseInt(c.duracao_meses, 10) || 12);
+  stateCiGerar.qtd = passo ? Math.max(1, Math.min(120, Math.ceil(meses / passo))) : 1;
+}
+function ciGerarCampo(k, v){
+  stateCiGerar[k] = v;
+  if(k === 'numero') ciGerarPreencherPadrao();
+  renderCiGerar();
+}
+function ciAjustarFimDeSemana(iso, modo){
+  if(modo === 'manter') return iso;
+  var d = ciData(iso), dow = d.getDay();
+  if(dow !== 0 && dow !== 6) return iso;
+  if(modo === 'antecipar') d.setDate(d.getDate() - (dow === 6 ? 1 : 2));
+  else d.setDate(d.getDate() + (dow === 6 ? 2 : 1));
+  return ciISO(d);
+}
+function ciParcelasPrevistas(){
+  var c = ciContratoPorNumero(stateCiGerar.numero);
+  if(!c || !stateCiGerar.primeiro) return [];
+  var passo = ciPassoMeses(c) || 1;
+  var qtd = Math.max(1, Math.min(120, parseInt(stateCiGerar.qtd, 10) || 1));
+  var valor = numeroBRParaFloat(stateCiGerar.valor);
+  var existentes = {};
+  ciCache.boletos.forEach(function(b){ if(String(b.contrato || '').trim() === String(c.numero).trim() && !/cancel/i.test(b.status || '')) existentes[String(b.vencimento).slice(0, 7)] = b; });
+  var out = [];
+  for(var i = 0; i < qtd; i++){
+    var venc0 = ciSomarMeses(stateCiGerar.primeiro, i * passo);
+    var venc = ciAjustarFimDeSemana(venc0, stateCiGerar.fimDeSemana);
+    out.push({ n: i + 1, vencimento: venc, competencia: ciMesAno(venc0), valor: valor, duplicado: existentes[venc0.slice(0, 7)] || null, passada: venc < hoje() });
+  }
+  return out;
+}
+function renderCiGerar(){
+  var el = $('viz-conteudo');
+  var ativos = ciCache.contratos.filter(ciContratoAtivo).sort(function(a,b){ return String(a.numero).localeCompare(String(b.numero), 'pt-BR', { numeric:true }); });
+  if(!ativos.length){ el.innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Nenhum contrato ativo. Cadastre em <a onclick="acionarRotina(\'Contratos::Cadastro de Contratos\')">Cadastro de Contratos</a>.</div>'; return; }
+  var c = ciContratoPorNumero(stateCiGerar.numero);
+  var sel = '<select class="mesnav-select" style="min-width:320px;" onchange="ciGerarCampo(\'numero\', this.value)"><option value="">Escolha o contrato…</option>'
+    + ativos.map(function(x){ return '<option value="' + esc(x.numero) + '"' + (c && x.numero === c.numero ? ' selected' : '') + '>' + esc(x.numero + ' - ' + (x.fornecedor || '') + (x.objeto ? ' (' + x.objeto + ')' : '')) + '</option>'; }).join('') + '</select>';
+  if(!c){ el.innerHTML = trilhaFiltrosTopo([['Contrato:', sel]]) + '<div class="vz-empty" style="padding:40px;">Escolha o contrato para ver as parcelas sugeridas.</div>'; return; }
+
+  var e = ciContratoEfetivo(c);
+  var parc = ciParcelasPrevistas();
+  var qtdPassadas = parc.filter(function(p){ return p.passada && !p.duplicado; }).length;
+  var novos = parc.filter(function(p){ return !p.duplicado && !(p.passada && stateCiGerar.passadas === 'ignorar'); });
+  var total = novos.reduce(function(s,p){ return s + (p.valor || 0); }, 0);
+  var form = '<div class="viz-card" style="margin-bottom:16px;"><div class="vz-body"><div class="ci-gerar-form">'
+    + '<label>Contrato' + sel + '</label>'
+    + '<label>1º vencimento<input type="date" class="filtro-data" value="' + esc(stateCiGerar.primeiro) + '" onchange="ciGerarCampo(\'primeiro\', this.value)"></label>'
+    + '<label>Qtde. de parcelas<input type="number" min="1" max="120" class="filtro-data" style="width:90px;" value="' + esc(stateCiGerar.qtd) + '" onchange="ciGerarCampo(\'qtd\', this.value)"></label>'
+    + '<label>Valor de cada parcela<input type="text" class="filtro-data" style="width:130px;" value="' + esc(stateCiGerar.valor ? Number(numeroBRParaFloat(stateCiGerar.valor)).toLocaleString('pt-BR', { minimumFractionDigits:2 }) : '') + '" onchange="ciGerarCampo(\'valor\', this.value)"></label>'
+    + '<label>Se cair no fim de semana<select class="mesnav-select" onchange="ciGerarCampo(\'fimDeSemana\', this.value)">'
+      + [['manter','Manter a data'],['antecipar','Antecipar p/ sexta'],['postergar','Adiar p/ segunda']].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === stateCiGerar.fimDeSemana ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>'
+    + '<label>Descrição<input type="text" class="filtro-data" style="width:140px;" value="' + esc(stateCiGerar.prefixo) + '" oninput="stateCiGerar.prefixo=this.value"></label>'
+    + (qtdPassadas ? '<label>Parcelas com vencimento já passado (' + qtdPassadas + ')<select class="mesnav-select" onchange="ciGerarCampo(\'passadas\', this.value)">'
+      + [['apagar','Lançar como A pagar'],['pagas','Lançar como já pagas'],['ignorar','Não lançar']].map(function(o){ return '<option value="' + o[0] + '"' + (o[0] === stateCiGerar.passadas ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select></label>' : '')
+    + '</div><div class="ci-gerar-info">' + esc(c.fornecedor || '') + ' | ' + esc(c.periodicidade || 'Mensal') + ' | dia ' + esc(c.dia_pagamento || '-')
+      + ' | vigência até ' + (e.fim ? fmtBR(e.fim) : '-') + (e.aditivos.length ? ' (com ' + e.aditivos.length + ' aditivo(s))' : '') + '</div></div></div>';
+  var tabela = '<div style="overflow-x:auto;"><table class="vz-table"><thead><tr><th>#</th><th>Competência</th><th>Vencimento</th><th>Valor</th><th>Situação</th></tr></thead><tbody>'
+    + parc.map(function(p){
+        var aposFim = e.fim && p.vencimento > e.fim;
+        return '<tr' + (p.duplicado ? ' style="opacity:.55;"' : '') + '><td>' + p.n + '</td><td>' + p.competencia + '</td><td>' + fmtBR(p.vencimento)
+          + (p.vencimento !== ciSomarMeses(stateCiGerar.primeiro, (p.n - 1) * (ciPassoMeses(c) || 1)) ? ' <small style="color:var(--v-text-muted);">(fim de semana ajustado)</small>' : '') + '</td>'
+          + '<td>' + ciMoeda(p.valor) + '</td><td>' + (p.duplicado ? ciBadge('Já lançado')
+              : (p.passada ? (stateCiGerar.passadas === 'ignorar' ? '<span style="color:#7a7a7a;font-size:11.5px;">Já passou - não será lançada</span>' : (stateCiGerar.passadas === 'pagas' ? ciBadge('Pago') : ciBadge('Vencido há ' + Math.abs(ciDiasAte(p.vencimento)) + ' dia(s)')))
+              : (aposFim ? '<span style="color:#c07a00;font-size:11.5px;">Após o fim da vigência</span>' : ciBadge('A pagar')))) + '</td></tr>';
+      }).join('') + '</tbody></table></div>';
+  el.innerHTML = form + vizKpiRow([
+      { label:'Parcelas novas', value: fmtNum(novos.length), sub: parc.length - novos.length ? (parc.length - novos.length) + ' já lançada(s) serão ignoradas' : '' },
+      { label:'Total a lançar', value: ciMoeda(total) },
+      { label:'Última parcela', value: parc.length ? fmtBR(parc[parc.length - 1].vencimento) : '-' }
+    ])
+    + '<div class="viz-grid full">' + trilhaCard('Prévia dos boletos', 'Confira antes de gerar - nada é gravado até você confirmar', tabela
+      + '<div style="display:flex;justify-content:flex-end;margin-top:14px;"><button class="btn primary" id="ci-btn-gerar" onclick="ciGerarConfirmar()"' + (novos.length && total ? '' : ' disabled') + '>Gerar ' + novos.length + ' boleto(s)</button></div>') + '</div>';
+}
+async function ciGerarConfirmar(){
+  var c = ciContratoPorNumero(stateCiGerar.numero); if(!c) return;
+  var novos = ciParcelasPrevistas().filter(function(p){ return !p.duplicado && !(p.passada && stateCiGerar.passadas === 'ignorar'); });
+  if(!novos.length) return;
+  if(!confirm('Gerar ' + novos.length + ' boleto(s) do contrato ' + c.numero + ', de ' + fmtBR(novos[0].vencimento) + ' a ' + fmtBR(novos[novos.length - 1].vencimento) + '?')) return;
+  var b = $('ci-btn-gerar'); b.disabled = true; b.textContent = 'Gerando…';
+  var totalParc = ciParcelasPrevistas().length;
+  var linhas = novos.map(function(p){
+    return { contrato: c.numero, fornecedor: c.fornecedor || null, setor: c.setor || null,
+             descricao: (stateCiGerar.prefixo || 'Parcela') + ' ' + p.n + '/' + totalParc, competencia: p.competencia,
+             vencimento: p.vencimento, valor: p.valor, forma_pagamento: c.forma_pagamento || 'Boleto',
+             status: (p.passada && stateCiGerar.passadas === 'pagas') ? 'Pago' : 'A pagar',
+             data_pagamento: (p.passada && stateCiGerar.passadas === 'pagas') ? p.vencimento : null,
+             valor_pago: (p.passada && stateCiGerar.passadas === 'pagas') ? p.valor : null };
+  });
+  var resp = await sbClient.from('ci_boletos').insert(linhas);
+  if(resp.error){ toast(dpFormatarErroSupabase('Não foi possível gerar', resp.error), true, 9000); b.disabled = false; b.textContent = 'Gerar ' + novos.length + ' boleto(s)'; return; }
+  toast(novos.length + ' boleto(s) gerado(s) para o contrato ' + c.numero + '.');
+  await ciCarregar();
+  renderCiGerar();
+}
+
+/* =====================================================================
+   CALENDÁRIO DE PAGAMENTOS
+   ===================================================================== */
+var stateCiCal = { ano: new Date().getFullYear(), mes: new Date().getMonth(), setor:'' };
+
+function abrirCiCalendario(){
+  ciMostrarPainel('Alertas e Painéis', 'Calendário de Pagamentos');
+  ciCarregar().then(renderCiCalendario).catch(ciErro);
+}
+function ciCalNavegar(d){
+  if(d === 0){ stateCiCal.ano = new Date().getFullYear(); stateCiCal.mes = new Date().getMonth(); }
+  else { stateCiCal.mes += d; if(stateCiCal.mes < 0){ stateCiCal.mes = 11; stateCiCal.ano--; } if(stateCiCal.mes > 11){ stateCiCal.mes = 0; stateCiCal.ano++; } }
+  renderCiCalendario();
+}
+function ciCalSetor(v){ stateCiCal.setor = v; renderCiCalendario(); }
+
+function renderCiCalendario(){
+  var el = $('viz-conteudo');
+  var ano = stateCiCal.ano, mes = stateCiCal.mes;
+  var prefixo = ano + '-' + String(mes + 1).padStart(2, '0');
+  var doMes = ciCache.boletos.filter(function(b){ return String(b.vencimento || '').slice(0, 7) === prefixo && !/cancel/i.test(b.status || '') && (!stateCiCal.setor || b.setor === stateCiCal.setor); });
+  var porDia = {};
+  doMes.forEach(function(b){ var d = parseInt(String(b.vencimento).slice(8, 10), 10); (porDia[d] = porDia[d] || []).push(b); });
+  var totalMes = doMes.reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0);
+  var pago = doMes.filter(function(b){ return !ciBoletoEmAberto(b); }).reduce(function(s,b){ return s + (Number(b.valor_pago || b.valor) || 0); }, 0);
+  var aberto = doMes.filter(ciBoletoEmAberto);
+  var vencido = aberto.filter(function(b){ return ciDiasAte(b.vencimento) < 0; }).reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0);
+
+  var primeiroDow = new Date(ano, mes, 1).getDay();
+  var diasNoMes = new Date(ano, mes + 1, 0).getDate();
+  var hj = hoje();
+  var cel = [];
+  for(var i = 0; i < primeiroDow; i++) cel.push('<div class="ci-dia vazio"></div>');
+  for(var d = 1; d <= diasNoMes; d++){
+    var iso = prefixo + '-' + String(d).padStart(2, '0');
+    var bs = (porDia[d] || []).sort(function(a,b){ return (Number(b.valor) || 0) - (Number(a.valor) || 0); });
+    var tot = bs.reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0);
+    var dow = new Date(ano, mes, d).getDay();
+    cel.push('<div class="ci-dia' + (iso === hj ? ' hoje' : '') + (dow === 0 || dow === 6 ? ' fds' : '') + '">'
+      + '<div class="ci-dia-num"><span>' + d + '</span>' + (tot ? '<b>' + ciMoeda(tot) + '</b>' : '') + '</div>'
+      + bs.slice(0, 4).map(function(b){
+          var sit = ciSituacaoBoleto(b);
+          var cls = sit === 'Pago' ? 'pago' : (/vencido/i.test(sit) ? 'venc' : (/hoje/i.test(sit) ? 'hoje' : 'aberto'));
+          return '<div class="ci-chip ' + cls + '" title="' + esc((b.fornecedor || '') + ' - ' + ciMoeda(b.valor) + ' - ' + sit) + '" onclick="ciCalDetalhe(' + b.id + ')">' + esc(b.fornecedor || b.descricao || 'Boleto') + '</div>';
+        }).join('')
+      + (bs.length > 4 ? '<div class="ci-chip mais" onclick="ciCalDetalheDia(\'' + iso + '\')">+' + (bs.length - 4) + ' mais</div>' : '')
+      + '</div>');
+  }
+  var nomesDow = ['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+  var nav = '<div class="ci-cal-nav"><button class="btn" onclick="ciCalNavegar(-1)">‹</button><div class="ci-cal-mes">' + mesCapitalizado(mes) + ' ' + ano + '</div><button class="btn" onclick="ciCalNavegar(1)">›</button>'
+    + '<button class="btn" onclick="ciCalNavegar(0)">Hoje</button>'
+    + '<span style="margin-left:auto;display:flex;align-items:center;gap:8px;font-size:12.5px;">Setor: ' + ciSelect('ci-cal-setor', 'Todos', ciDistintos(ciCache.boletos, 'setor'), stateCiCal.setor, 'ciCalSetor(this.value)') + '</span></div>';
+  el.innerHTML = nav + vizKpiRow([
+      { label:'Total do mês', value: ciMoeda(totalMes), sub: doMes.length + ' boleto(s)' },
+      { label:'Pago', value: ciMoeda(pago) },
+      { label:'Em aberto', value: ciMoeda(aberto.reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0)), sub: aberto.length + ' boleto(s)' },
+      { label:'Vencido', value: ciMoeda(vencido), subClass: vencido ? 'neg' : '' }
+    ])
+    + '<div class="viz-card"><div class="vz-body"><div class="ci-cal-legenda"><span class="ci-chip pago">Pago</span><span class="ci-chip aberto">A pagar</span><span class="ci-chip hoje">Vence hoje</span><span class="ci-chip venc">Vencido</span></div>'
+    + '<div class="ci-cal">' + nomesDow.map(function(n){ return '<div class="ci-dow">' + n + '</div>'; }).join('') + cel.join('') + '</div></div></div>'
+    + '<div id="ci-cal-detalhe"></div>';
+}
+function ciCalDetalheDia(iso){
+  var bs = ciCache.boletos.filter(function(b){ return String(b.vencimento).slice(0, 10) === iso && !/cancel/i.test(b.status || ''); });
+  ciDetalheBoletos('Vencimentos de ' + fmtBR(iso), bs);
+}
+function ciCalDetalhe(id){ ciDetalheBoletos('Boleto', ciCache.boletos.filter(function(b){ return String(b.id) === String(id); })); }
+function ciDetalheBoletos(titulo, bs){
+  var box = $('ci-cal-detalhe'); if(!box) return;
+  box.innerHTML = '<div class="viz-card" style="margin-top:16px;"><div class="viz-card-head"><div><h3>' + esc(titulo) + '</h3></div><a style="cursor:pointer;" onclick="document.getElementById(\'ci-cal-detalhe\').innerHTML=\'\'">Fechar ✕</a></div><div class="vz-body">'
+    + '<div style="overflow-x:auto;"><table class="vz-table"><thead><tr><th>Vencimento</th><th>Fornecedor</th><th>Descrição</th><th>Contrato</th><th>Valor</th><th>Situação</th><th>Linha digitável / PIX</th><th></th></tr></thead><tbody>'
+    + bs.map(function(b){
+        var sit = ciSituacaoBoleto(b);
+        return '<tr><td>' + fmtBR(b.vencimento) + '</td><td>' + esc(b.fornecedor || '-') + '</td><td>' + esc(b.descricao || '-') + '</td><td>' + esc(b.contrato || '-') + '</td>'
+          + '<td>' + ciMoeda(b.valor) + '</td><td>' + ciBadge(sit) + '</td>'
+          + '<td style="font-size:11px;max-width:220px;word-break:break-all;">' + (b.linha_digitavel ? esc(b.linha_digitavel) + ' <a style="cursor:pointer;" onclick="navigator.clipboard && navigator.clipboard.writeText(this.dataset.l).then(function(){ toast(\'Copiado.\'); })" data-l="' + esc(b.linha_digitavel) + '">copiar</a>' : '-') + '</td>'
+          + '<td style="white-space:nowrap;">' + (ciBoletoEmAberto(b) ? '<button class="btn" onclick="ciMarcarPago(' + b.id + ', renderCiCalendario)">✓ Pago</button>' : '') + (b.link_documento ? ' <a href="' + esc(b.link_documento) + '" target="_blank" rel="noopener">abrir</a>' : '') + '</td></tr>';
+      }).join('') + '</tbody></table></div></div></div>';
+  if(box.scrollIntoView) box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+
+/* =====================================================================
+   FICHA DO CONTRATO
+   ===================================================================== */
+var stateCiFicha = { numero:'' };
+function abrirCiFicha(numero){
+  if(typeof numero === 'string' && numero) stateCiFicha.numero = numero;
+  ciMostrarPainel('Contratos', 'Ficha do Contrato');
+  ciCarregar().then(renderCiFicha).catch(ciErro);
+}
+function ciFichaEscolher(v){ stateCiFicha.numero = v; renderCiFicha(); }
+
+function renderCiFicha(){
+  var el = $('viz-conteudo');
+  var todos = ciCache.contratos.slice().sort(function(a,b){ return String(a.numero).localeCompare(String(b.numero), 'pt-BR', { numeric:true }); });
+  if(!todos.length){ el.innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Nenhum contrato cadastrado ainda. Comece por <a onclick="acionarRotina(\'Contratos::Cadastro de Contratos\')">Cadastro de Contratos</a>.</div>'; return; }
+  var c = ciContratoPorNumero(stateCiFicha.numero);
+  var sel = '<select class="mesnav-select" style="min-width:340px;" onchange="ciFichaEscolher(this.value)"><option value="">Escolha o contrato…</option>'
+    + todos.map(function(x){ return '<option value="' + esc(x.numero) + '"' + (c && x.numero === c.numero ? ' selected' : '') + '>' + esc(x.numero + ' - ' + (x.fornecedor || '') + (x.objeto ? ' (' + x.objeto + ')' : '')) + '</option>'; }).join('') + '</select>';
+  var topo = '<div class="ci-ficha-topo">' + trilhaFiltrosTopo([['Contrato:', sel]]) + (c ? '<button class="btn" onclick="window.print()">🖨 Imprimir ficha</button>' : '') + '</div>';
+  if(!c){ el.innerHTML = topo + '<div class="vz-empty" style="padding:40px;">Escolha um contrato para ver a ficha completa: vigência, aditivos, pagamentos e saldo.</div>'; return; }
+
+  var e = ciContratoEfetivo(c);
+  var bs = ciCache.boletos.filter(function(b){ return String(b.contrato || '').trim() === String(c.numero).trim() && !/cancel/i.test(b.status || ''); })
+    .sort(function(a,b){ return String(a.vencimento).localeCompare(String(b.vencimento)); });
+  var pago = bs.filter(function(b){ return !ciBoletoEmAberto(b); }).reduce(function(s,b){ return s + (Number(b.valor_pago || b.valor) || 0); }, 0);
+  var aPagar = bs.filter(ciBoletoEmAberto).reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0);
+  var vencidoV = bs.filter(function(b){ return ciBoletoEmAberto(b) && ciDiasAte(b.vencimento) < 0; }).reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0);
+  var saldo = e.valorAtual ? e.valorAtual - pago - aPagar : null;
+
+  /* régua da vigência */
+  var pct = 0, diasRest = e.fim ? ciDiasAte(e.fim) : null;
+  if(c.data_inicio && e.fim){
+    var tot = (ciData(e.fim) - ciData(c.data_inicio)) / 86400000, corr = (ciData(hoje()) - ciData(c.data_inicio)) / 86400000;
+    pct = Math.max(0, Math.min(100, Math.round(corr / Math.max(tot, 1) * 100)));
+  }
+  var corRegua = diasRest === null ? '#b8bec5' : (diasRest < 0 ? '#d03b3b' : (diasRest <= (parseInt(c.alerta_dias, 10) || 30) ? '#c07a00' : '#0d8a2e'));
+  var regua = '<div class="ci-regua"><div class="ci-regua-trilho"><div class="ci-regua-fill" style="width:' + pct + '%;background:' + corRegua + ';"></div><div class="ci-regua-hoje" style="left:' + pct + '%;"></div></div>'
+    + '<div class="ci-regua-datas"><span>Início ' + (c.data_inicio ? fmtBR(c.data_inicio) : '-') + '</span><span style="color:' + corRegua + ';font-weight:700;">'
+      + (diasRest === null ? '' : (diasRest < 0 ? 'Venceu há ' + Math.abs(diasRest) + ' dia(s)' : diasRest + ' dia(s) restantes')) + '</span><span>Fim ' + (e.fim ? fmtBR(e.fim) : '-') + '</span></div></div>';
+
+  var dados = [
+    ['Objeto', c.objeto], ['Fornecedor', c.fornecedor + (c.cnpj ? ' (' + c.cnpj + ')' : '')], ['Responsável', c.responsavel], ['Setor', c.setor + (c.centro_custo ? ' | CC ' + c.centro_custo : '')],
+    ['Duração', (c.duracao_meses ? c.duracao_meses + ' meses' : '-') + (e.fim !== e.fimOriginal ? ' (término original ' + fmtBR(e.fimOriginal) + ')' : '')],
+    ['Pagamento', (c.periodicidade || '-') + ', dia ' + (c.dia_pagamento || '-') + ', ' + (c.forma_pagamento || '-')],
+    ['Reajuste', (c.indice_reajuste || '-') + (c.data_reajuste ? ' em ' + fmtBR(c.data_reajuste) : '')],
+    ['Status', ciBadge(c.status || 'Vigente') + ' ' + ciBadge(ciSituacaoContrato(c))]
+  ];
+  var cardDados = '<div class="ci-ficha-grid">' + dados.map(function(d){ return '<div><div class="ci-ficha-rot">' + d[0] + '</div><div class="ci-ficha-val">' + (d[0] === 'Status' ? d[1] : esc(d[1] || '-')) + '</div></div>'; }).join('') + '</div>'
+    + (c.link_documento ? '<div style="margin-top:12px;"><a href="' + esc(c.link_documento) + '" target="_blank" rel="noopener">📄 Abrir contrato assinado</a></div>' : '')
+    + (c.observacoes ? '<div class="ci-ficha-obs">' + esc(c.observacoes) + '</div>' : '');
+
+  /* linha do tempo: início, aditivos, fim */
+  var eventos = [{ data: c.data_inicio, tit: 'Início da vigência', det: ciMoeda(e.valorOriginal) + (c.valor_parcela ? ' | parcela ' + ciMoeda(c.valor_parcela) : ''), cls:'ini' }];
+  e.aditivos.forEach(function(a){
+    var det = [];
+    if(a.nova_data_fim) det.push('novo término ' + fmtBR(a.nova_data_fim)); else if(a.meses_acrescidos) det.push('+' + a.meses_acrescidos + ' mês(es)');
+    if(a.valor_acrescimo) det.push((Number(a.valor_acrescimo) >= 0 ? '+' : '') + ciMoeda(a.valor_acrescimo));
+    if(a.novo_valor_parcela) det.push('parcela ' + ciMoeda(a.novo_valor_parcela));
+    eventos.push({ data: a.data_assinatura, tit: 'Aditivo ' + (a.numero_aditivo || '') + ' - ' + (a.tipo || ''), det: det.join(' | ') + (a.descricao ? ' - ' + a.descricao : ''), cls:'adit', link: a.link_documento });
+  });
+  eventos.push({ data: e.fim, tit: 'Fim da vigência', det: diasRest === null ? '' : (diasRest < 0 ? 'encerrada' : 'em ' + diasRest + ' dia(s)'), cls:'fim' });
+  var linhaTempo = '<div class="ci-timeline">' + eventos.map(function(ev){
+    return '<div class="ci-tl-item ' + ev.cls + '"><div class="ci-tl-data">' + (ev.data ? fmtBR(ev.data) : '-') + '</div><div class="ci-tl-tit">' + esc(ev.tit) + (ev.link ? ' <a href="' + esc(ev.link) + '" target="_blank" rel="noopener">📄</a>' : '') + '</div><div class="ci-tl-det">' + esc(ev.det || '') + '</div></div>';
+  }).join('') + '</div>';
+
+  var tabBol = !bs.length ? '<div class="vz-empty">Nenhum boleto lançado. <a onclick="abrirCiGerarBoletos(\'' + esc(c.numero) + '\')">Gerar boletos deste contrato</a></div>'
+    : '<div style="overflow-x:auto;"><table class="vz-table"><thead><tr><th>Vencimento</th><th>Descrição</th><th>Competência</th><th>Valor</th><th>Pago em</th><th>Valor pago</th><th>Situação</th><th></th></tr></thead><tbody>'
+      + bs.map(function(b){
+          return '<tr><td>' + fmtBR(b.vencimento) + '</td><td>' + esc(b.descricao || '-') + '</td><td>' + esc(b.competencia || '-') + '</td><td>' + ciMoeda(b.valor) + '</td>'
+            + '<td>' + (b.data_pagamento ? fmtBR(b.data_pagamento) : '-') + '</td><td>' + (b.valor_pago ? ciMoeda(b.valor_pago) : '-') + '</td><td>' + ciBadge(ciSituacaoBoleto(b)) + '</td>'
+            + '<td>' + (ciBoletoEmAberto(b) ? '<button class="btn" onclick="ciMarcarPago(' + b.id + ', renderCiFicha)">✓ Pago</button>' : '') + '</td></tr>';
+        }).join('') + '</tbody></table></div>';
+
+  el.innerHTML = topo
+    + '<div class="ci-ficha-cab"><div><div class="ci-ficha-num">Contrato ' + esc(c.numero) + '</div><div class="ci-ficha-forn">' + esc(c.fornecedor || '') + '</div></div>' + regua + '</div>'
+    + vizKpiRow([
+        { label:'Valor contratado', value: ciMoeda(e.valorOriginal) },
+        { label:'Valor atualizado', value: ciMoeda(e.valorAtual), sub: e.aditivos.length ? e.aditivos.length + ' aditivo(s)' : 'sem aditivos' },
+        { label:'Pago', value: ciMoeda(pago) },
+        { label:'A pagar', value: ciMoeda(aPagar), sub: vencidoV ? ciMoeda(vencidoV) + ' vencido' : '', subClass: vencidoV ? 'neg' : '' },
+        { label:'Saldo do contrato', value: saldo === null ? '-' : ciMoeda(saldo), sub: saldo !== null && saldo < 0 ? 'lançado acima do valor' : 'ainda não lançado', subClass: saldo !== null && saldo < 0 ? 'neg' : '' }
+      ])
+    + '<div class="viz-grid">' + trilhaCard('Dados do contrato', '', cardDados) + trilhaCard('Linha do tempo', 'Início, aditivos e fim da vigência', linhaTempo) + '</div>'
+    + '<div class="viz-grid full" style="margin-top:16px;">' + trilhaCard('Boletos e pagamentos', bs.length + ' lançamento(s)', tabBol) + '</div>';
+}
+
+/* =====================================================================
+   PAINEL FINANCEIRO
+   ===================================================================== */
+var stateCiPainel = { ano: new Date().getFullYear(), setor:'' };
+function abrirCiPainel(){
+  ciMostrarPainel('Alertas e Painéis', 'Painel Financeiro');
+  ciCarregar().then(renderCiPainel).catch(ciErro);
+}
+function ciPainelFiltro(k, v){ stateCiPainel[k] = k === 'ano' ? parseInt(v, 10) : v; renderCiPainel(); }
+
+function renderCiPainel(){
+  var el = $('viz-conteudo');
+  var f = stateCiPainel, ano = f.ano;
+  var bsAll = ciCache.boletos.filter(function(b){ return !/cancel/i.test(b.status || '') && (!f.setor || b.setor === f.setor); });
+  var bsAno = bsAll.filter(function(b){ return String(b.vencimento || '').slice(0, 4) === String(ano); });
+  var contratos = ciCache.contratos.filter(function(c){ return !f.setor || c.setor === f.setor; });
+  var vigentes = contratos.filter(ciContratoAtivo);
+  var mensal = vigentes.reduce(function(s,c){
+    var e = ciContratoEfetivo(c), passo = ciPassoMeses(c);
+    return s + (passo ? e.parcelaAtual / passo : 0);
+  }, 0);
+  var mesAtual = hoje().slice(0, 7);
+  var doMes = bsAll.filter(function(b){ return String(b.vencimento).slice(0, 7) === mesAtual; });
+  var aPagarMes = doMes.filter(ciBoletoEmAberto).reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0);
+  var pagoMes = bsAll.filter(function(b){ return !ciBoletoEmAberto(b) && String(b.data_pagamento || '').slice(0, 7) === mesAtual; }).reduce(function(s,b){ return s + (Number(b.valor_pago || b.valor) || 0); }, 0);
+  var atraso = bsAll.filter(function(b){ return ciBoletoEmAberto(b) && ciDiasAte(b.vencimento) < 0; });
+  var atrasoV = atraso.reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0);
+  var jurosPagos = bsAno.filter(function(b){ return !ciBoletoEmAberto(b) && b.valor_pago && Number(b.valor_pago) > Number(b.valor); }).reduce(function(s,b){ return s + (Number(b.valor_pago) - Number(b.valor)); }, 0);
+  var pagosComData = bsAno.filter(function(b){ return !ciBoletoEmAberto(b) && b.data_pagamento; });
+  var emDia = pagosComData.filter(function(b){ return b.data_pagamento <= b.vencimento; }).length;
+  var pontualidade = pagosComData.length ? Math.round(emDia / pagosComData.length * 100) : null;
+
+  /* previsto x pago por mês */
+  var meses = [];
+  for(var m = 0; m < 12; m++){
+    var pre = ano + '-' + String(m + 1).padStart(2, '0');
+    var doM = bsAno.filter(function(b){ return String(b.vencimento).slice(0, 7) === pre; });
+    meses.push({ label: mesCapitalizado(m).slice(0, 3), previsto: doM.reduce(function(s,b){ return s + (Number(b.valor) || 0); }, 0),
+                 pago: doM.filter(function(b){ return !ciBoletoEmAberto(b); }).reduce(function(s,b){ return s + (Number(b.valor_pago || b.valor) || 0); }, 0),
+                 atual: pre === mesAtual });
+  }
+  var maxM = Math.max.apply(null, meses.map(function(x){ return x.previsto; }).concat([1]));
+  var graf = '<div class="ci-colunas">' + meses.map(function(x){
+    return '<div class="ci-col' + (x.atual ? ' atual' : '') + '" title="' + x.label + ': previsto ' + ciMoeda(x.previsto) + ', pago ' + ciMoeda(x.pago) + '">'
+      + '<div class="ci-col-barras"><div class="ci-col-prev" style="height:' + Math.round(x.previsto / maxM * 100) + '%;"><div class="ci-col-pago" style="height:' + (x.previsto ? Math.round(x.pago / x.previsto * 100) : 0) + '%;"></div></div></div>'
+      + '<div class="ci-col-val">' + (x.previsto ? ciMoeda(x.previsto) : '') + '</div><div class="ci-col-lbl">' + x.label + '</div></div>';
+  }).join('') + '</div><div class="ci-cal-legenda" style="margin-top:8px;"><span><i class="ci-leg prev"></i> Previsto</span><span><i class="ci-leg pago"></i> Pago</span></div>';
+
+  var agrupar = function(lista, fnK){
+    var acc = {}; lista.forEach(function(b){ var k = fnK(b) || '(sem informação)'; acc[k] = (acc[k] || 0) + (Number(b.valor_pago || b.valor) || 0); });
+    return Object.keys(acc).map(function(k){ return { label:k, valor: Math.round(acc[k] * 100) }; }).sort(function(a,b){ return b.valor - a.valor; }).slice(0, 10);
+  };
+  var porSetor = agrupar(bsAno, function(b){ return b.setor; });
+  var porForn = agrupar(bsAno, function(b){ return b.fornecedor; });
+  var barrasMoeda = function(itens){ return trilhaBarras(itens, '').replace(/<div class="vz-bar-value">([\d.]+)<\/div>/g, function(_, n){ return '<div class="vz-bar-value">' + ciMoeda(Number(n.replace(/\./g, '')) / 100) + '</div>'; }); };
+
+  /* vencimentos de contratos nos próximos 6 meses */
+  var prox = vigentes.map(function(c){ var e = ciContratoEfetivo(c); return { c:c, fim:e.fim, d: e.fim ? ciDiasAte(e.fim) : null, valor: e.valorAtual }; })
+    .filter(function(x){ return x.d !== null && x.d <= 180; }).sort(function(a,b){ return a.d - b.d; });
+  var tabProx = !prox.length ? '<div class="vz-empty">Nenhum contrato vence nos próximos 6 meses.</div>'
+    : '<div style="overflow-x:auto;"><table class="vz-table"><thead><tr><th>Contrato</th><th>Fornecedor</th><th>Responsável</th><th>Fim</th><th>Situação</th><th></th></tr></thead><tbody>'
+      + prox.map(function(x){ return '<tr><td>' + esc(x.c.numero) + '</td><td>' + esc(x.c.fornecedor || '-') + '</td><td>' + esc(x.c.responsavel || '-') + '</td><td>' + fmtBR(x.fim) + '</td><td>' + ciBadge(ciSituacaoContrato(x.c)) + '</td><td><a style="cursor:pointer;" onclick="abrirCiFicha(\'' + esc(x.c.numero) + '\')">ficha</a></td></tr>'; }).join('')
+      + '</tbody></table></div>';
+
+  var anos = {}; anos[ano] = true; anos[new Date().getFullYear()] = true;
+  ciCache.boletos.forEach(function(b){ if(b.vencimento) anos[String(b.vencimento).slice(0, 4)] = true; });
+  var filtros = trilhaFiltrosTopo([
+    ['Ano:', '<select class="mesnav-select" onchange="ciPainelFiltro(\'ano\', this.value)">' + Object.keys(anos).sort().map(function(a){ return '<option value="' + a + '"' + (+a === ano ? ' selected' : '') + '>' + a + '</option>'; }).join('') + '</select>'],
+    ['Setor:', ciSelect('ci-pn-setor', 'Todos', ciDistintos(ciCache.contratos.concat(ciCache.boletos), 'setor'), f.setor, "ciPainelFiltro('setor', this.value)")]
+  ]);
+  el.innerHTML = filtros + vizKpiRow([
+      { label:'Contratos vigentes', value: fmtNum(vigentes.length), sub: contratos.length + ' cadastrado(s)' },
+      { label:'Custo mensal comprometido', value: ciMoeda(mensal), sub:'parcelas dos contratos ativos' },
+      { label:'A pagar neste mês', value: ciMoeda(aPagarMes), sub: 'pago no mês: ' + ciMoeda(pagoMes) },
+      { label:'Em atraso', value: ciMoeda(atrasoV), sub: atraso.length + ' boleto(s)', subClass: atraso.length ? 'neg' : '' },
+      { label:'Pontualidade ' + ano, value: pontualidade === null ? '-' : pontualidade + '%', sub: jurosPagos ? ciMoeda(jurosPagos) + ' em juros/multas' : 'sem juros pagos', subClass: jurosPagos ? 'neg' : '' }
+    ])
+    + '<div class="viz-grid full">' + trilhaCard('Previsto x pago por mês', String(ano), graf) + '</div>'
+    + '<div class="viz-grid" style="margin-top:16px;">'
+      + trilhaCard('Gasto por setor', ano + ' | top 10', porSetor.length ? barrasMoeda(porSetor) : '<div class="vz-empty">Sem boletos no período.</div>')
+      + trilhaCard('Maiores fornecedores', ano + ' | top 10', porForn.length ? barrasMoeda(porForn) : '<div class="vz-empty">Sem boletos no período.</div>')
+    + '</div>'
+    + '<div class="viz-grid full" style="margin-top:16px;">' + trilhaCard('Contratos que vencem nos próximos 6 meses', 'Hora de decidir: renovar, renegociar ou encerrar', tabProx) + '</div>';
 }
 
 /* ================= TRILHA PA - ETAPAS DO CONTEÚDO (campo "etapas") =================
