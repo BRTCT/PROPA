@@ -839,6 +839,10 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .mqp-pdf-area .mqd{min-width:0 !important;}
   .mqp-pdf-area .mqd-rolagem{overflow:visible !important;}
   .mqp-btn-pdf{white-space:nowrap;}
+  /* sessão: tela de "Entrando…" ao atualizar a página */
+  .sessao-carregando{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f6f8;color:#5a6570;font-size:14px;}
+  .sessao-carregando span{width:18px;height:18px;border-radius:50%;border:2px solid #cfd6dc;border-top-color:#619935;animation:girarSessao .8s linear infinite;}
+  @keyframes girarSessao{to{transform:rotate(360deg);}}
   /* tempo real */
   .rt-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#7a838c;margin-right:8px;white-space:nowrap;vertical-align:middle;}
   .rt-status i{width:8px;height:8px;border-radius:50%;background:#b8bec5;}
@@ -3279,7 +3283,7 @@ async function criarSenhaConfirmar(){
   }
 }
 
-function loginEntrarComoUsuario(registro){
+function loginEntrarComoUsuario(registro, restaurando){
   state.usuarioLogado = {
     id: registro.id, usuario: registro.usuario, nome: registro.nome, email: registro.email || '',
     admin: registro.admin === 'Sim',
@@ -3293,12 +3297,13 @@ function loginEntrarComoUsuario(registro){
     mqpEtapas: Array.isArray(registro.mqp_etapas) ? registro.mqp_etapas : [],
     mqpExclusivo: registro.mqp_exclusivo === 'Sim'
   };
-  // Salvar estado de login em localStorage
+  // Salvar estado de login em localStorage (permite atualizar a página sem sair)
   try {
     localStorage.setItem('portal_usuario_logado', JSON.stringify(state.usuarioLogado));
+    sessaoRenovar();
   } catch(e) { console.warn('localStorage não disponível:', e); }
 
-  sbClient.from('usuarios').update({ ultimo_acesso: new Date().toISOString() }).eq('id', registro.id).then(function(){}, function(erro){
+  if(!restaurando) sbClient.from('usuarios').update({ ultimo_acesso: new Date().toISOString() }).eq('id', registro.id).then(function(){}, function(erro){
     console.error('Falha ao registrar último acesso (não bloqueia o login):', erro);
   });
   loginUsuarioEncontrado = null;
@@ -3329,6 +3334,7 @@ function logOff(){
     localStorage.removeItem('portal_usuario_logado');
     localStorage.removeItem('portal_ambiente_atual');
     localStorage.removeItem('portal_rotina_atual');
+    localStorage.removeItem('portal_sessao_expira');
   } catch(e) { console.warn('localStorage não disponível:', e); }
   ambVoltar();
   $('view-ambiente').style.display = 'none';
@@ -3398,6 +3404,7 @@ function selecionarAmbiente(codigo){
 
 function ambVoltar(){
   if(state.usuarioLogado && state.usuarioLogado.mqpExclusivo) return;
+  try{ localStorage.removeItem('portal_ambiente_atual'); localStorage.removeItem('portal_rotina_atual'); }catch(e){}
   $('app').style.display = 'none';
   $('view-ambiente').style.display = 'flex';
   $('view-funcionarios').style.display = 'none';
@@ -3438,6 +3445,7 @@ function ambEntrar(){
 
 /* ================= APP (dentro do ambiente escolhido) ================= */
 function entrarNoAmbiente(a){
+  try{ if(a && a.codigo) localStorage.setItem('portal_ambiente_atual', a.codigo); }catch(e){}
   $('view-ambiente').style.display = 'none';
   $('app').style.display = 'flex';
 
@@ -13493,6 +13501,71 @@ async function mqpBaixarPdf(id, botao){
     if(botao){ botao.disabled = false; botao.innerHTML = txt; }
   }
 }
+
+
+/* =====================================================================
+   SESSÃO: continuar logado ao atualizar a página
+   - Ao entrar, o portal guarda o usuário (sem senha) e um prazo de 12 h,
+     renovado a cada uso. Ao atualizar a página, ele busca o usuário de
+     novo no Supabase (se foi inativado, volta para o login), restaura o
+     ambiente e a rotina que estavam abertos.
+   - "Sair" apaga tudo; depois de 12 h sem uso, pede login de novo.
+   ===================================================================== */
+var SESSAO_HORAS = 12;
+function sessaoRenovar(){
+  try{ localStorage.setItem('portal_sessao_expira', String(Date.now() + SESSAO_HORAS * 3600000)); }catch(e){}
+}
+var sessaoUltimaRenovacao = 0;
+['click','keydown'].forEach(function(ev){
+  document.addEventListener(ev, function(){
+    if(!state.usuarioLogado || Date.now() - sessaoUltimaRenovacao < 60000) return;
+    sessaoUltimaRenovacao = Date.now(); sessaoRenovar();
+  }, true);
+});
+async function sessaoRestaurar(){
+  var salvo = null, expira = 0;
+  try{ salvo = JSON.parse(localStorage.getItem('portal_usuario_logado') || 'null'); expira = Number(localStorage.getItem('portal_sessao_expira') || 0); }catch(e){}
+  if(!salvo || !salvo.usuario || !expira || Date.now() > expira){
+    try{ localStorage.removeItem('portal_usuario_logado'); localStorage.removeItem('portal_sessao_expira'); }catch(e){}
+    return false;
+  }
+  /* esconde o login enquanto confere (evita "piscar" a tela de login) */
+  var login = $('view-login'), carregando = document.createElement('div');
+  carregando.id = 'sessao-carregando'; carregando.className = 'sessao-carregando'; carregando.innerHTML = '<span></span>Entrando…';
+  if(login) login.style.display = 'none';
+  document.body.appendChild(carregando);
+  try{
+    var r = await sbClient.from('usuarios').select('*').eq('usuario', salvo.usuario).limit(1);
+    var reg = !r.error && r.data && r.data[0];
+    if(!reg || /inativ/i.test(reg.status || '')){
+      try{ localStorage.removeItem('portal_usuario_logado'); localStorage.removeItem('portal_sessao_expira'); }catch(e){}
+      if(login) login.style.display = 'flex';
+      if(reg) toast('Seu usuário está inativo. Fale com um administrador.', true, 8000);
+      return false;
+    }
+    var amb = null, rot = null;
+    try{ amb = localStorage.getItem('portal_ambiente_atual'); rot = localStorage.getItem('portal_rotina_atual'); }catch(e){}
+    loginEntrarComoUsuario(reg, true);
+    var a = amb && AMBIENTES.find(function(x){ return x.codigo === amb; });
+    if(a && a.disponivel && usuarioTemAcessoAmbiente(a.codigo) && !(state.ambiente && state.ambiente.codigo === a.codigo)){
+      state.ambiente = a;
+      $('view-ambiente').style.display = 'none';
+      entrarNoAmbiente(a);
+    }
+    if(rot && state.ambiente && ROTINAS_PRONTAS[rot] && (typeof rotinaVisivel !== 'function' || rotinaVisivel(rot))){
+      var itensAmb = []; state.ambiente.secoes.forEach(function(sec){ sec.itens.forEach(function(it){ itensAmb.push(sec.titulo + '::' + it); }); });
+      if(itensAmb.indexOf(rot) >= 0) setTimeout(function(){ acionarRotina(rot); }, 50);
+    }
+    return true;
+  } catch(e){
+    console.error('Não foi possível restaurar a sessão', e);
+    if(login) login.style.display = 'flex';
+    return false;
+  } finally {
+    carregando.remove();
+  }
+}
+setTimeout(sessaoRestaurar, 0);
 
 /* =====================================================================
    CONTROLE INTEGRADO (ambiente 08)
