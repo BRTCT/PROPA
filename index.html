@@ -857,6 +857,11 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .rot-badge.pulo{animation:rotBadgePulo .55s cubic-bezier(.2,.9,.3,1.4);}
   @keyframes rotBadgePulo{0%{transform:scale(.4);}60%{transform:scale(1.2);}100%{transform:scale(1);}}
   @media (prefers-reduced-motion: reduce){ .rot-badge.pulo{animation:none;} }
+  .mqp-devolvida.negada{background:#fdecea;border-color:#f3b7b0;}
+  .mqp-devolvida.negada b{color:#a32a1f;} .mqp-devolvida.negada span{color:#5a1c16;}
+  .mqp-devolvida small{display:block;font-size:11.5px;color:#6b4a2a;margin-top:6px;}
+  .mqp-corr-card{border-left-color:#c07a00 !important;} .mqp-corr-card.negada{border-left-color:#d03b3b !important;}
+  .mqp-corr-motivo{font-size:12px;color:#3a454e;margin-top:3px;font-style:italic;}
   /* destino final e MQPs aprovadas */
   .fx-final{border-left:4px solid #20b26b;}
   .fx-dest{display:flex;flex-wrap:wrap;gap:8px;}
@@ -2765,7 +2770,7 @@ var AMBIENTES = [
       {
         titulo: 'Movimentação de Pessoal',
         sub: 'Preencha, acompanhe e aprove as solicitações',
-        itens: ['Criar MQP','Minhas MQPs','Aprovações Pendentes','MQPs Aprovadas','Configuração do Fluxo']
+        itens: ['Criar MQP','Minhas MQPs','MQPs para Correção','Aprovações Pendentes','MQPs Aprovadas','Configuração do Fluxo']
       }
     ]
   }
@@ -3541,10 +3546,12 @@ var ROTINAS_PRONTAS = {
   'Movimentação de Pessoal::Minhas MQPs': 'abrirMqpLista',
   'Movimentação de Pessoal::Aprovações Pendentes': 'abrirMqpAprovacoes',
   'Movimentação de Pessoal::Configuração do Fluxo': 'abrirMqpFluxo',
-  'Movimentação de Pessoal::MQPs Aprovadas': 'abrirMqpAprovadas'
+  'Movimentação de Pessoal::MQPs Aprovadas': 'abrirMqpAprovadas',
+  'Movimentação de Pessoal::MQPs para Correção': 'abrirMqpCorrecao'
 };
 
 function acionarRotina(chave){
+  if(typeof rotinaVisivel === 'function' && !rotinaVisivel(chave)){ toast('Esta rotina é exclusiva para administradores.', true); return; }
   var fn = ROTINAS_PRONTAS[chave];
   if(fn && typeof window[fn] === 'function'){
     // Salvar rotina atual em localStorage
@@ -3560,12 +3567,22 @@ function acionarRotina(chave){
   }
 }
 
+/* rotinas que só administradores enxergam (menu, tela inicial e acesso) */
+var ROTINAS_SO_ADMIN = ['Movimentação de Pessoal::Configuração do Fluxo'];
+function rotinaVisivel(chave){
+  if(ROTINAS_SO_ADMIN.indexOf(chave) < 0) return true;
+  return !!(state.usuarioLogado && state.usuarioLogado.admin);
+}
+function itensVisiveis(sec){ return sec.itens.filter(function(item){ return rotinaVisivel(sec.titulo + '::' + item); }); }
+
 function renderMenuTree(a){
   var html = '';
   a.secoes.forEach(function(sec){
-    html += '<div class="tree-parent closed" onclick="toggleTree(this)"><span class="caret">&#9660;</span>'+esc(sec.titulo)+' ('+sec.itens.length+')</div>';
+    var itens = itensVisiveis(sec);
+    if(!itens.length) return;
+    html += '<div class="tree-parent closed" onclick="toggleTree(this)"><span class="caret">&#9660;</span>'+esc(sec.titulo)+' ('+itens.length+')</div>';
     html += '<div class="tree-kids">';
-    sec.itens.forEach(function(item){
+    itens.forEach(function(item){
       var chave = sec.titulo + '::' + item;
       html += '<span class="leaf" data-chave="'+esc(chave)+'" onclick="acionarRotina(\''+esc(chave)+'\')">'+esc(item)+'</span>';
     });
@@ -3579,8 +3596,10 @@ function renderHome(a){
   var html = '';
   html += '<div class="home-banner"><div class="ico">'+a.banner.titulo.charAt(0)+'</div><div><h1>'+esc(a.banner.titulo)+'</h1><p>'+esc(a.banner.texto)+'</p></div></div>';
   a.secoes.forEach(function(sec){
+    var itens = itensVisiveis(sec);
+    if(!itens.length) return;
     html += '<div class="home-sec"><h2>'+esc(sec.titulo)+'</h2><div class="sub">'+esc(sec.sub)+'</div><div class="home-links">';
-    sec.itens.forEach(function(item){
+    itens.forEach(function(item){
       var chave = sec.titulo + '::' + item;
       var pronta = !!ROTINAS_PRONTAS[chave];
       var cls = pronta ? '' : ' class="soon"';
@@ -12090,10 +12109,10 @@ async function mqpSalvar(silencioso){
   if(stMqp.salvando) return;
   stMqp.salvando = true;
   try{
-    var linha = mqpLinhaParaGravar(stMqp.status === 'Devolvida' ? 'Devolvida' : 'Rascunho');
+    var linha = mqpLinhaParaGravar(mqpEmCorrecao(stMqp) ? stMqp.status : 'Rascunho');
     if(!stMqp.id){ linha.historico = [{ data: new Date().toISOString(), acao: 'Rascunho criado', usuario: mqpUsuario().nome }]; stMqp.historico = linha.historico; }
     await mqpGravar(linha);
-    if(stMqp.status !== 'Devolvida') stMqp.status = 'Rascunho';
+    if(!mqpEmCorrecao(stMqp)) stMqp.status = 'Rascunho';
     if(!silencioso) toast('Rascunho ' + (stMqp.numero || '') + ' salvo. Você pode continuar depois em "Minhas MQPs".');
     renderMqp();
   } catch(e){
@@ -12134,7 +12153,7 @@ async function mqpEnviar(){
     linha.fluxo = stMqp.fluxoEnviado || null;
     linha.etapa_aprovacao = stMqp.fluxoEnviado ? stMqp.fluxoEnviado.etapas[0].k : 'gestor';
     linha.finalizado_em = null;
-    linha.historico = (stMqp.historico || []).concat([{ data: linha.enviado_em, acao: stMqp.status === 'Devolvida' ? 'Reenviada após ajuste' : 'Enviada para aprovação', usuario: mqpUsuario().nome }]);
+    linha.historico = (stMqp.historico || []).concat([{ data: linha.enviado_em, acao: mqpEmCorrecao(stMqp) ? 'Reenviada após correção' : 'Enviada para aprovação', usuario: mqpUsuario().nome }]);
     linha.aprovacoes = (stMqp.aprovacoes || []).concat([{ acao: 'Enviada', usuario: mqpUsuario().nome, login: mqpUsuario().login, data: linha.enviado_em }]);
     var r = await mqpGravar(linha);
     stMqp.status = 'Aguardando aprovação';
@@ -12190,7 +12209,7 @@ function renderMqpLista(manterFoco){
   });
   var status = ['Rascunho','Aguardando aprovação','Devolvida','Aprovada','Reprovada','Cancelada'];
   var chips = '<div class="mqp-chips"><button class="mqp-chip' + (L.filtro === 'todas' ? ' on' : '') + '" onclick="mqpListaFiltro(\'filtro\',\'todas\')">Todas <em>' + base.length + '</em></button>'
-    + status.filter(function(s){ return cont[s]; }).map(function(s){ return '<button class="mqp-chip' + (L.filtro === s ? ' on' : '') + '" onclick="mqpListaFiltro(\'filtro\',\'' + s + '\')">' + s + ' <em>' + cont[s] + '</em></button>'; }).join('')
+    + status.filter(function(s){ return cont[s]; }).map(function(s){ return '<button class="mqp-chip' + (L.filtro === s ? ' on' : '') + '" onclick="mqpListaFiltro(\'filtro\',\'' + s + '\')">' + esc(s === 'Reprovada' ? 'Negada' : s) + ' <em>' + cont[s] + '</em></button>'; }).join('')
     + (adm ? '<label class="mqp-chk"><input type="checkbox"' + (L.todasAdmin ? ' checked' : '') + ' onchange="mqpListaFiltro(\'todasAdmin\', this.checked)"> Mostrar MQPs de todos (administrador)</label>' : '')
     + '<input type="text" id="mqp-busca" class="filtro-data" style="margin-left:auto;min-width:220px;" placeholder="Buscar nº, colaborador, CC…" value="' + esc(L.busca) + '" oninput="mqpListaFiltro(\'busca\', this.value)">'
     + '<button class="btn primary" onclick="abrirMqpCriar()">+ Criar MQP</button></div>';
@@ -12205,13 +12224,15 @@ function renderMqpLista(manterFoco){
   el.innerHTML = chips + '<div class="viz-grid full">' + trilhaCard('Solicitações de MQP', lista.length + ' encontrada(s)', tabela) + '</div>';
   if(manterFoco){ var i = $('mqp-busca'); if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
 }
+function mqpEmCorrecao(m){ return m.status === 'Reprovada' || m.status === 'Devolvida'; }
 function mqpEhMinha(m){
   var u = state.usuarioLogado || {};
   return !!u.usuario && m.solicitante_login === u.usuario;
 }
+function mqpStatusRotulo(st){ return st === 'Reprovada' ? 'Negada - em correção' : (st === 'Devolvida' ? 'Devolvida - em correção' : st); }
 function mqpBadge(s){
   var c = corStatusBadge(s) || { bg:'#eceef0', fg:'#5a6570' };
-  return '<span style="display:inline-block;padding:3px 9px;border-radius:12px;font-size:11.5px;font-weight:600;white-space:nowrap;background:' + c.bg + ';color:' + c.fg + ';">' + esc(s || '-') + '</span>';
+  return '<span style="display:inline-block;padding:3px 9px;border-radius:12px;font-size:11.5px;font-weight:600;white-space:nowrap;background:' + c.bg + ';color:' + c.fg + ';">' + esc(mqpStatusRotulo(s) || '-') + '</span>';
 }
 function mqpDadosDaLinha(m){
   return {
@@ -12234,23 +12255,25 @@ async function mqpDetalhe(id){
   var hist = (m.historico || []).slice().reverse().map(function(h){
     return '<div class="mqp-hist"><b>' + esc(h.acao) + '</b><span>' + esc(h.usuario || '') + ' | ' + new Date(h.data).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' }) + '</span>' + (h.obs ? '<em>' + esc(h.obs) + '</em>' : '') + '</div>';
   }).join('');
-  var podeEditar = m.status === 'Rascunho' || m.status === 'Devolvida';
-  var podeCancelar = m.status === 'Rascunho' || m.status === 'Aguardando aprovação' || m.status === 'Devolvida';
+  var podeEditar = m.status === 'Rascunho' || mqpEmCorrecao(m);
+  var podeCancelar = m.status === 'Rascunho' || m.status === 'Aguardando aprovação' || mqpEmCorrecao(m);
   stMqp.aprovacoes = m.aprovacoes || [];
   try{ await mqpCarregarUsuarios(); }catch(e){}
-  var ultDev = m.status === 'Devolvida' ? (m.aprovacoes || []).filter(function(a){ return /devolv/i.test(a.acao); }).pop() : null;
+  var ultDev = mqpEmCorrecao(m) ? (m.aprovacoes || []).filter(function(a){ return /devolv|negad|recus/i.test(a.acao); }).pop() : null;
   $('viz-conteudo').innerHTML = '<div class="mqp-wrap mqp-wrap-largo"><div class="mqp-topo-det no-print"><button class="btn" onclick="abrirMqpLista()">‹ Voltar à lista</button><span style="flex:1"></span>'
-      + (podeEditar ? '<button class="btn primary" onclick="mqpContinuar()">' + (m.status === 'Devolvida' ? 'Ajustar e reenviar' : 'Continuar preenchimento') + '</button>' : '')
+      + (podeEditar ? '<button class="btn primary" onclick="mqpContinuar()">' + (mqpEmCorrecao(m) ? '✎ Corrigir e reenviar' : 'Continuar preenchimento') + '</button>' : '')
       + (m.status === 'Aprovada' ? '<button class="btn primary mqp-btn-pdf" onclick="mqpBaixarPdf(' + m.id + ', this)">⬇ Baixar PDF</button>' : '')
       + '<button class="btn" onclick="window.print()">🖨 Imprimir</button>'
       + (podeCancelar ? '<button class="btn" onclick="mqpCancelar(' + m.id + ')">' + (m.status === 'Rascunho' ? 'Excluir rascunho' : 'Cancelar MQP') + '</button>' : '') + '</div>'
     + mqpHtmlBarraDecisao(m) + mqpHtmlReatribuir(m)
-    + (ultDev ? '<div class="mqp-devolvida no-print"><b>↩ Devolvida para ajuste por ' + esc(ultDev.usuario) + ' (' + esc(ultDev.etapa_nome || '') + ')</b><span>' + esc(ultDev.obs || '') + '</span></div>' : '')
+    + (ultDev ? '<div class="mqp-devolvida no-print' + (m.status === 'Reprovada' ? ' negada' : '') + '"><b>' + (m.status === 'Reprovada' ? '✕ Negada por ' : '↩ Devolvida para ajuste por ') + esc(ultDev.assinatura || ultDev.usuario) + ' (' + esc(ultDev.etapa_nome || '') + ') em ' + new Date(ultDev.data).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' }) + '</b>'
+        + '<span><b style="display:inline;color:inherit;">Motivo:</b> ' + esc(ultDev.obs || '-') + '</span>'
+        + '<small>Clique em <b>Corrigir e reenviar</b>, ajuste o que for preciso e envie de novo. A MQP recomeça o fluxo de aprovação desde a 1ª etapa.</small></div>' : '')
     + '<div class="mqp-det-grade"><div class="mqp-card mqp-card-doc">' + mqpHtmlDocumento(m) + mqpHtmlAnexosDet(m)
     + (hist ? '<div class="mqp-rev-sec no-print" style="margin-top:16px;"><div class="mqp-rev-tit">Histórico</div>' + hist + '</div>' : '')
     + '</div>' + (m.status !== 'Rascunho' ? '<div class="mqp-card mqp-card-fluxo"><h3 class="mqp-h3" style="margin-top:0;">Fluxo de aprovação</h3>' + mqpHtmlFluxo(m) + '</div>' : '') + '</div></div>';
 }
-function mqpContinuar(){ stMqp.passo = 0; mqpMostrarTela(stMqp.status === 'Devolvida' ? 'Ajustar MQP' : 'Criar MQP'); renderMqp(); }
+function mqpContinuar(){ stMqp.passo = 0; mqpMostrarTela(mqpEmCorrecao(stMqp) ? 'Corrigir MQP' : 'Criar MQP'); renderMqp(); }
 async function mqpCancelar(id){
   var m = stMqpLista.dados.find(function(x){ return x.id === id; }); if(!m) return;
   try{
@@ -12475,7 +12498,7 @@ async function mqpDecidir(id, acao){
      && !confirm('O nome digitado ("' + assinatura + '") é diferente do seu cadastro (' + eu.nome + '). Continuar mesmo assim?')) return;
   var prox = mqpProximaEtapa(e.k, m);
   var txtConf = acao === 'aprovar' ? (e.feito === 'Assinado' ? 'Assinar' : 'Aprovar') + ' a ' + m.numero + '?' + (prox ? '\n\nEla seguirá para: ' + prox.nome + '.' : '\n\nEsta é a última etapa: o processo será FINALIZADO.')
-    : acao === 'recusar' ? 'Negar a ' + m.numero + '? O processo será encerrado.' : 'Devolver a ' + m.numero + ' para o solicitante ajustar?';
+    : acao === 'recusar' ? 'Negar a ' + m.numero + '?\n\nEla volta para o solicitante corrigir e reenviar (rotina MQPs para Correção).' : 'Devolver a ' + m.numero + ' para o solicitante ajustar?';
   if(!confirm(txtConf)) return;
 
   var agora = new Date().toISOString();
@@ -12532,7 +12555,7 @@ function mqpTelaDecidida(m, acao, prox){
     email = mqpLinkEmail(m, dest, 'MQP ' + m.numero + ' aprovada - para providências', 'Olá,\n\nA MQP abaixo foi aprovada em todas as etapas e está com você para providências:\n\n' + resumo + '\n\nAcesse o Portal de Ambientes > MQP > MQPs Aprovadas.\n')
       + mqpLinkEmail(m, sol, 'MQP ' + m.numero + ' aprovada', 'Olá,\n\nA MQP ' + resumo + ' foi aprovada por todas as etapas.\n');
   } else {
-    titulo = acao === 'recusar' ? 'MQP negada' : 'MQP devolvida'; texto = 'A <b>' + esc(m.numero) + '</b> foi ' + (acao === 'recusar' ? 'negada e o processo foi encerrado.' : 'devolvida para o solicitante ajustar.');
+    titulo = acao === 'recusar' ? 'MQP negada' : 'MQP devolvida'; texto = 'A <b>' + esc(m.numero) + '</b> foi ' + (acao === 'recusar' ? 'negada e voltou para o solicitante corrigir (rotina MQPs para Correção). Quando ele reenviar, o fluxo recomeça.' : 'devolvida para o solicitante ajustar.');
     var sol2 = stMqpAprov.usuarios.filter(function(u){ return u.usuario === m.solicitante_login; });
     var ult = (m.aprovacoes || [])[(m.aprovacoes || []).length - 1] || {};
     email = mqpLinkEmail(m, sol2, 'MQP ' + m.numero + (acao === 'recusar' ? ' recusada' : ' devolvida para ajuste'), 'Olá,\n\nA MQP ' + resumo + ' foi ' + (acao === 'recusar' ? 'recusada' : 'devolvida para ajuste') + ' por ' + ult.usuario + ' (' + ult.etapa_nome + ').\n\nMotivo: ' + (ult.obs || '-') + '\n');
@@ -12551,6 +12574,7 @@ function mqpAtualizarContador(){
     var n = (r[1].data || []).filter(function(m){ return mqpPossoAgir(m, eu); }).length;
     definirContadorRotina(MQP_CHAVE_APROV, n);
     definirContadorRotina(MQP_CHAVE_APROVADAS, mqpAprovadasParaMim(r[1].data || [], eu).filter(function(m){ return !m.processado_em; }).length);
+    definirContadorRotina(MQP_CHAVE_CORRECAO, (r[1].data || []).filter(function(m){ return mqpEmCorrecao(m) && m.solicitante_login === eu.usuario; }).length);
     return n;
   }).catch(function(){ return 0; });
 }
@@ -12574,16 +12598,17 @@ function mqpAvisoEntrada(){
     definirContadorRotina(MQP_CHAVE_APROV, pend.length);
     var aProc = mqpAprovadasParaMim(r[1].data || [], eu).filter(function(m){ return !m.processado_em; });
     definirContadorRotina(MQP_CHAVE_APROVADAS, aProc.length);
-    var devolv = (r[1].data || []).filter(function(m){ return m.status === 'Devolvida' && m.solicitante_login === eu.usuario; });
+    var devolv = (r[1].data || []).filter(function(m){ return mqpEmCorrecao(m) && m.solicitante_login === eu.usuario; });
+    definirContadorRotina(MQP_CHAVE_CORRECAO, devolv.length);
     if(!pend.length && !devolv.length && !aProc.length) return;
     var velho = $('ci-aviso-entrada'); if(velho) velho.remove();
     var div = document.createElement('div');
     div.id = 'ci-aviso-entrada'; div.className = 'ci-aviso-entrada'; div.style.borderTopColor = '#c07a00';
     div.innerHTML = '<button class="x" onclick="this.parentNode.remove()" aria-label="Fechar">✕</button><div class="t">🔄 MQP</div><ul>'
       + (pend.length ? '<li class="a">' + pend.length + ' MQP(s) aguardando sua decisão</li>' : '')
-      + (devolv.length ? '<li class="c">' + devolv.length + ' MQP(s) sua(s) devolvida(s) para ajuste</li>' : '')
+      + (devolv.length ? '<li class="c">' + devolv.length + ' MQP(s) sua(s) negada(s) ou devolvida(s), aguardando correção</li>' : '')
       + (aProc.length ? '<li>' + aProc.length + ' MQP(s) aprovada(s) aguardando você processar</li>' : '') + '</ul>'
-      + '<button class="btn primary" onclick="document.getElementById(\'ci-aviso-entrada\').remove();acionarRotina(\'' + (pend.length ? 'Movimentação de Pessoal::Aprovações Pendentes' : (aProc.length ? 'Movimentação de Pessoal::MQPs Aprovadas' : 'Movimentação de Pessoal::Minhas MQPs')) + '\')">' + (pend.length ? 'Ver aprovações' : (aProc.length ? 'Ver MQPs aprovadas' : 'Ver minhas MQPs')) + '</button>';
+      + '<button class="btn primary" onclick="document.getElementById(\'ci-aviso-entrada\').remove();acionarRotina(\'' + (pend.length ? 'Movimentação de Pessoal::Aprovações Pendentes' : (aProc.length ? 'Movimentação de Pessoal::MQPs Aprovadas' : 'Movimentação de Pessoal::MQPs para Correção')) + '\')">' + (pend.length ? 'Ver aprovações' : (aProc.length ? 'Ver MQPs aprovadas' : 'Corrigir MQPs')) + '</button>';
     document.body.appendChild(div);
   }).catch(function(){});
 }
@@ -12665,6 +12690,7 @@ function mqpResolverDestinatarios(fluxo, usuarios){
 
 /* ---------- tela ---------- */
 function abrirMqpFluxo(){
+  if(!mqpFluxoAdmin()){ toast('A Configuração do Fluxo é exclusiva para administradores.', true); return; }
   mqpMostrarTela('Configuração do Fluxo');
   $('viz-conteudo').innerHTML = '<div style="padding:40px;text-align:center;">Carregando…</div>';
   Promise.all([mqpCarregarFluxos(), mqpCarregarUsuarios(), dpSelecionarTudo('dp_centros_custo', 'codigo')]).then(function(r){
@@ -13075,7 +13101,8 @@ function mqpHtmlBarraDecisao(m){
       + '<textarea id="mqp-ap-motivo" class="mqp-input" rows="3" placeholder="Explique por que a MQP está sendo negada"></textarea>'
       + '<label for="mqp-ap-nome-neg">Digite seu nome completo <b>*</b></label>'
       + '<input type="text" id="mqp-ap-nome-neg" class="mqp-input" autocomplete="name">'
-      + '<div class="mqp-dec-acoes"><a class="mqp-dec-devolver" onclick="mqpDecidir(' + m.id + ',\'devolver\')">↩ Prefiro devolver para o solicitante ajustar</a><span style="flex:1"></span>'
+      + '<small class="mqp-dec-legal">A MQP volta para o solicitante corrigir e reenviar. Ao reenviar, o fluxo recomeça desde a 1ª etapa.</small>'
+      + '<div class="mqp-dec-acoes"><span style="flex:1"></span>'
       + '<button type="button" class="mqp-btn contorno" onclick="mqpDecEscolher(null)">Cancelar</button><button type="button" class="mqp-btn mqp-dec-nao" onclick="mqpDecidir(' + m.id + ',\'recusar\')">Negar</button></div>'
     + '</div></div>';
 }
@@ -13097,6 +13124,41 @@ function mqpDecFonteEscolhida(){
   return r ? r.value : MQP_ESTILOS_ASSINATURA[0].fonte;
 }
 
+
+/* =====================================================================
+   MQP - MQPs PARA CORREÇÃO (negadas ou devolvidas, do próprio solicitante)
+   ===================================================================== */
+var MQP_CHAVE_CORRECAO = 'Movimentação de Pessoal::MQPs para Correção';
+function abrirMqpCorrecao(){
+  mqpMostrarTela('MQPs para Correção');
+  $('viz-conteudo').innerHTML = '<div style="padding:40px;text-align:center;">Carregando…</div>';
+  Promise.all([mqpCarregarUsuarios(), mqpCarregarMqps()]).then(function(r){
+    if(r[1].error) throw r[1].error;
+    stMqpLista.dados = r[1].data || [];
+    renderMqpCorrecao();
+  }).catch(function(e){
+    $('viz-conteudo').innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Não foi possível carregar.<br><small>' + esc(dpFormatarErroSupabase('Supabase', e)) + '</small></div>';
+  });
+}
+function renderMqpCorrecao(){
+  var lista = stMqpLista.dados.filter(function(m){ return mqpEmCorrecao(m) && mqpEhMinha(m); })
+    .sort(function(a,b){ return String(b.updated_at || '').localeCompare(String(a.updated_at || '')); });
+  definirContadorRotina(MQP_CHAVE_CORRECAO, lista.length);
+  var cards = !lista.length
+    ? '<div class="ci-tudo-certo"><div class="ci-tudo-certo-ic">✓</div><b>Nenhuma MQP sua precisa de correção.</b><br><small style="color:#6b747d;">Quando um aprovador negar ou devolver uma MQP que você criou, ela aparece aqui.</small></div>'
+    : lista.map(function(m){
+        var cs = m.colaboradores || [];
+        var dec = (m.aprovacoes || []).filter(function(a){ return /devolv|negad|recus/i.test(a.acao); }).pop() || {};
+        return '<button type="button" class="mqp-ap-card mqp-corr-card' + (m.status === 'Reprovada' ? ' negada' : '') + '" onclick="mqpDetalhe(' + m.id + ')">'
+          + '<div class="mqp-ap-esq"><b>' + esc(m.numero || '') + '</b><span>' + esc(m.tipo_movimentacao || '') + '</span></div>'
+          + '<div class="mqp-ap-meio"><div class="mqp-ap-nome">' + esc(cs.length ? cs[0].nome + (cs.length > 1 ? ' e mais ' + (cs.length - 1) : '') : '-') + '</div>'
+            + '<div class="mqp-ap-meta">' + (m.status === 'Reprovada' ? 'Negada' : 'Devolvida') + ' por ' + esc(dec.assinatura || dec.usuario || '-') + (dec.etapa_nome ? ' (' + esc(dec.etapa_nome) + ')' : '')
+            + (dec.data ? ' em ' + new Date(dec.data).toLocaleDateString('pt-BR') : '') + '</div>'
+            + '<div class="mqp-corr-motivo">Motivo: ' + esc(dec.obs || '-') + '</div></div>'
+          + '<div class="mqp-ap-dir"><span class="mqp-ap-acao" style="background:#c07a00;">✎ Corrigir</span></div></button>';
+      }).join('');
+  $('viz-conteudo').innerHTML = '<div class="viz-grid full">' + trilhaCard('MQPs negadas ou devolvidas aguardando sua correção', lista.length + ' MQP(s)', cards) + '</div>';
+}
 /* =====================================================================
    MQP - MQPs APROVADAS (destino final configurado no fluxo)
    ===================================================================== */
@@ -13201,6 +13263,7 @@ function rtRegistro(){
     abrirCadSimples: { tabelas: function(){ var c = CADASTROS_SIMPLES[stateCadSimples.chave]; return c ? [c.tabela].concat(/^ci_/.test(c.tabela) ? CI : []) : []; }, view: 'view-cad-simples', recarregar: csRecarregarSilencioso },
     abrirMqpLista:       dash(MQP, async function(){ var r = await mqpCarregarMqps(); if(!r.error){ stMqpLista.dados = r.data || []; renderMqpLista(); } }),
     abrirMqpAprovacoes:  dash(MQP, async function(){ await mqpCarregarUsuarios(); var r = await mqpCarregarMqps(); if(!r.error){ stMqpAprov.dados = r.data || []; renderMqpAprovacoes(); } }),
+    abrirMqpCorrecao:    dash(MQP, async function(){ var r = await mqpCarregarMqps(); if(!r.error){ stMqpLista.dados = r.data || []; renderMqpCorrecao(); } }),
     abrirMqpAprovadas:   dash(MQP, async function(){ await mqpCarregarUsuarios(); var r = await mqpCarregarMqps(); if(!r.error){ stMqpAprov.dados = r.data || []; renderMqpAprovadas(); } }),
     mqpDetalhe:          dash(MQP, async function(id){ var r = await mqpCarregarMqps(); if(!r.error){ stMqpLista.dados = r.data || []; await mqpDetalhe(id); } }),
     mqpAprovDetalhe:     dash(MQP, async function(id){ await mqpCarregarUsuarios(); var r = await mqpCarregarMqps(); if(!r.error){ stMqpAprov.dados = r.data || []; await mqpAprovDetalhe(id); } }),
