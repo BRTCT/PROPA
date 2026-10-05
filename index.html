@@ -843,6 +843,26 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .sessao-carregando{position:fixed;inset:0;z-index:300;display:flex;align-items:center;justify-content:center;gap:10px;background:#f4f6f8;color:#5a6570;font-size:14px;}
   .sessao-carregando span{width:18px;height:18px;border-radius:50%;border:2px solid #cfd6dc;border-top-color:#619935;animation:girarSessao .8s linear infinite;}
   @keyframes girarSessao{to{transform:rotate(360deg);}}
+  /* ===== LGPD (estilos com prefixo próprio para não afetar o portal) ===== */
+  .lgpd-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:500;justify-content:center;align-items:center;padding:16px;}
+  .lgpd-overlay.ativo{display:flex;}
+  .lgpd-modal{background:#fff;border-radius:12px;padding:36px 38px 26px;max-width:600px;width:100%;max-height:calc(100vh - 32px);overflow-y:auto;box-shadow:0 10px 40px rgba(0,0,0,.2);animation:lgpdSobe .3s ease-out;font-family:-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;text-align:left;}
+  @keyframes lgpdSobe{from{transform:translateY(50px);opacity:0;}to{transform:none;opacity:1;}}
+  .lgpd-modal h2{color:#333;margin:0 0 18px;font-size:24px;}
+  .lgpd-modal p{color:#666;line-height:1.6;margin:0 0 14px;font-size:14px;}
+  .lgpd-info{background:#eff6ff;border-left:4px solid #3b82f6;padding:14px;border-radius:4px;margin-bottom:18px;font-size:12px;color:#1e40af;}
+  .lgpd-item{margin:14px 0;padding:14px 15px;background:#f5f5f5;border-radius:8px;display:flex;align-items:flex-start;gap:10px;cursor:pointer;}
+  .lgpd-item input{margin-top:3px;width:18px;height:18px;cursor:pointer;flex-shrink:0;accent-color:#10b981;}
+  .lgpd-item strong{display:block;color:#333;margin-bottom:4px;font-size:14px;} .lgpd-item strong em{font-style:normal;font-weight:400;color:#b45309;font-size:12px;}
+  .lgpd-item small{color:#888;font-size:12px;line-height:1.4;}
+  .lgpd-item.obrigatorio{border:1px solid #fde4b3;}
+  .lgpd-msg{display:none;background:#fdecea;color:#a32a1f;border-radius:6px;padding:10px 12px;font-size:13px;margin-top:10px;}
+  .lgpd-botoes{display:flex;gap:10px;margin-top:24px;}
+  .lgpd-btn{flex:1;padding:12px 20px;border:none;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;transition:background .2s;font-family:inherit;}
+  .lgpd-concordar{background:#10b981;color:#fff;} .lgpd-concordar:hover{background:#059669;} .lgpd-concordar:disabled{opacity:.6;cursor:wait;}
+  .lgpd-recusar{background:#e5e7eb;color:#333;} .lgpd-recusar:hover{background:#d1d5db;}
+  .lgpd-modal .lgpd-rodape{margin:18px 0 0;font-size:11px;color:#999;}
+  @media (max-width:520px){ .lgpd-modal{padding:24px 20px 18px;} .lgpd-modal h2{font-size:20px;} }
   /* tempo real */
   .rt-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#7a838c;margin-right:8px;white-space:nowrap;vertical-align:middle;}
   .rt-status i{width:8px;height:8px;border-radius:50%;background:#b8bec5;}
@@ -3313,6 +3333,7 @@ function loginEntrarComoUsuario(registro, restaurando){
   $('view-login').style.display = 'none';
   dpCarregarDadosIniciais();
   if(typeof rtIniciar === 'function') rtIniciar();
+  if(typeof lgpdVerificar === 'function') lgpdVerificar();
   /* usuário "somente MQP": vai direto para o ambiente MQP */
   if(state.usuarioLogado.mqpExclusivo){
     var aMqp = AMBIENTES.find(function(x){ return x.codigo === '09'; });
@@ -3328,6 +3349,7 @@ function loginEntrarComoUsuario(registro, restaurando){
 
 function logOff(){
   if(typeof rtParar === 'function') rtParar();
+  var lgpdOv = document.getElementById('lgpd-overlay'); if(lgpdOv) lgpdOv.remove();
   state.usuarioLogado = null;
   // Limpar estado de login do localStorage
   try {
@@ -13566,6 +13588,82 @@ async function sessaoRestaurar(){
   }
 }
 setTimeout(sessaoRestaurar, 0);
+
+/* =====================================================================
+   LGPD - consentimento de dados (portal)
+   Aparece logo depois do login (e ao reabrir com a sessão salva) para
+   quem ainda não consentiu com a VERSÃO atual do termo. Fica por cima de
+   tudo e só fecha com "Concordo" (marcando o item obrigatório) ou
+   "Recusar" (que sai do sistema). O aceite fica gravado no Supabase
+   (consentimentos_lgpd: usuário, data, versão, escolhas, navegador).
+   Para pedir um novo aceite de todos (termo mudou), aumente LGPD_VERSAO.
+   ===================================================================== */
+var LGPD_VERSAO = '1.0';
+function lgpdChaveLocal(u){ return 'lgpd_portal_' + u.usuario + '_v' + LGPD_VERSAO; }
+
+async function lgpdVerificar(){
+  var u = state.usuarioLogado; if(!u || !u.usuario) return;
+  try{ if(localStorage.getItem(lgpdChaveLocal(u))) return; }catch(e){}
+  try{
+    var r = await sbClient.from('consentimentos_lgpd').select('id').eq('tipo', 'portal').eq('usuario', u.usuario).eq('versao', LGPD_VERSAO).limit(1);
+    if(!r.error && r.data && r.data.length){ try{ localStorage.setItem(lgpdChaveLocal(u), '1'); }catch(e){} return; }
+  }catch(e){ console.warn('LGPD: verificação no banco falhou', e); }
+  lgpdMostrar();
+}
+
+function lgpdMostrar(){
+  if($('lgpd-overlay')) { $('lgpd-overlay').classList.add('ativo'); return; }
+  var nome = (state.usuarioLogado && state.usuarioLogado.nome) ? String(state.usuarioLogado.nome).split(' ')[0] : '';
+  var div = document.createElement('div');
+  div.id = 'lgpd-overlay'; div.className = 'lgpd-overlay ativo';
+  div.setAttribute('role', 'dialog'); div.setAttribute('aria-modal', 'true'); div.setAttribute('aria-labelledby', 'lgpd-titulo');
+  div.innerHTML = '<div class="lgpd-modal">'
+    + '<h2 id="lgpd-titulo">🔒 Proteção de Seus Dados</h2>'
+    + '<div class="lgpd-info">ℹ️ Estamos em conformidade com a <strong>Lei Geral de Proteção de Dados (LGPD)</strong></div>'
+    + '<p>Olá' + (nome ? ', ' + esc(nome) : '') + '! Para usar o Portal Parente Andrade com segurança, precisamos do seu consentimento para processar e proteger seus dados pessoais.</p>'
+    + '<label class="lgpd-item obrigatorio" for="lgpd-dados"><input type="checkbox" id="lgpd-dados">'
+      + '<span><strong>Processamento de Dados Pessoais <em>(obrigatório)</em></strong><small>Autorizo o processamento seguro de meus dados pessoais (nome, CPF, salário, etc)</small></span></label>'
+    + '<label class="lgpd-item" for="lgpd-cookies"><input type="checkbox" id="lgpd-cookies">'
+      + '<span><strong>Cookies e Rastreamento</strong><small>Autorizo o uso de cookies para melhorar sua experiência</small></span></label>'
+    + '<label class="lgpd-item" for="lgpd-marketing"><input type="checkbox" id="lgpd-marketing">'
+      + '<span><strong>Comunicações (Opcional)</strong><small>Desejo receber notificações sobre novos recursos e atualizações</small></span></label>'
+    + '<div class="lgpd-msg" id="lgpd-msg" role="alert"></div>'
+    + '<div class="lgpd-botoes"><button type="button" class="lgpd-btn lgpd-recusar" onclick="lgpdRecusar()">Recusar</button>'
+    + '<button type="button" class="lgpd-btn lgpd-concordar" id="lgpd-concordar" onclick="lgpdConcordar()">Concordo</button></div>'
+    + '<p class="lgpd-rodape"><strong>Direitos LGPD:</strong> Você pode a qualquer momento exercer seus direitos de acesso, correção, exclusão ou portabilidade de dados entrando em contato com nossa equipe.</p>'
+    + '</div>';
+  document.body.appendChild(div);
+  setTimeout(function(){ var c = $('lgpd-dados'); if(c) c.focus(); }, 50);
+}
+function lgpdMsg(t){ var m = $('lgpd-msg'); if(m){ m.textContent = t || ''; m.style.display = t ? 'block' : 'none'; } }
+
+async function lgpdConcordar(){
+  var u = state.usuarioLogado; if(!u) return;
+  if(!$('lgpd-dados').checked){ lgpdMsg('⚠️ Você precisa concordar com o processamento de dados pessoais para continuar.'); return; }
+  var b = $('lgpd-concordar'); b.disabled = true; b.textContent = 'Registrando…'; lgpdMsg('');
+  var linha = {
+    tipo: 'portal', usuario: u.usuario, nome: u.nome || null, email: u.email || null,
+    consentimento_dados: true, consentimento_cookies: $('lgpd-cookies').checked, consentimento_marketing: $('lgpd-marketing').checked,
+    versao: LGPD_VERSAO, data_consentimento: new Date().toISOString(), navegador: String(navigator.userAgent || '').slice(0, 300)
+  };
+  try{
+    var r = await sbClient.from('consentimentos_lgpd').upsert(linha, { onConflict: 'tipo,usuario' });
+    if(r.error) throw r.error;
+    try{ localStorage.setItem(lgpdChaveLocal(u), '1'); }catch(e){}
+    var ov = $('lgpd-overlay'); if(ov) ov.remove();
+    toast('✅ Consentimento registrado com sucesso!');
+  } catch(e){
+    console.error(e);
+    lgpdMsg('Não foi possível registrar o consentimento agora. Tente de novo. ' + (e && e.message ? '(' + e.message + ')' : ''));
+    b.disabled = false; b.textContent = 'Concordo';
+  }
+}
+function lgpdRecusar(){
+  if(!confirm('Sem o consentimento para o processamento de dados pessoais, não é possível usar o portal (exigência da LGPD).\n\nDeseja sair?')) return;
+  var ov = $('lgpd-overlay'); if(ov) ov.remove();
+  logOff();
+  toast('Você saiu do portal. Para usar, é preciso aceitar o processamento de dados pessoais.', true, 8000);
+}
 
 /* =====================================================================
    CONTROLE INTEGRADO (ambiente 08)
