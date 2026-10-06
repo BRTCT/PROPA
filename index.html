@@ -16239,16 +16239,6 @@ function abrirDashboardAuditoria() {
 
 // Funções removidas - agora usa a view-dashboard padrão
 
-function mudarAbaDashboard(aba) {
-  document.querySelectorAll('.audit-aba').forEach(el => el.classList.remove('active'));
-  document.querySelectorAll('.audit-tab').forEach(el => el.classList.remove('active'));
-  if(document.getElementById(`aba-${aba}`)) {
-    document.getElementById(`aba-${aba}`).classList.add('active');
-  }
-  if(event && event.target) event.target.classList.add('active');
-  if (aba === 'stats') carregarEstatisticas();
-}
-
 function mudarAbaDashboardAuditoria(aba) {
   // Reuse a view-dashboard mas com conteúdo de auditoria
   const conteudo = document.getElementById('viz-conteudo');
