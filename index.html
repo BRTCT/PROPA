@@ -2540,7 +2540,7 @@ var AMBIENTES = [
       {
         titulo: 'Relatórios e Dashboards',
         sub: 'Selecione a rotina na lista abaixo',
-        itens: ['Quadro de Colaboradores','Indicadores de RH','Provisões','Aniversariantes (Sede)']
+        itens: ['Dashboard de Auditoria','Quadro de Colaboradores','Indicadores de RH','Provisões','Aniversariantes (Sede)']
       },
       {
         titulo: 'Miscelânia',
@@ -3522,6 +3522,7 @@ var ROTINAS_PRONTAS = {
   'Movimentações::Férias': 'abrirFerias',
   'Movimentações::Rescisão': 'abrirRescisao',
   'Miscelânia::Importação de Ativo': 'abrirImportacao',
+  'Relatórios e Dashboards::Dashboard de Auditoria': 'abrirDashboardAuditoria',
   'Relatórios e Dashboards::Quadro de Colaboradores': 'abrirDashboardQuadro',
   'Programações::Calendário': 'abrirCalendario',
   'Relatórios e Dashboards::Indicadores de RH': 'abrirDashboardIndicadores',
@@ -16195,6 +16196,177 @@ document.addEventListener('click', function(e) {
     </div>
   </div>
 </div>
+
+<!-- ===================================
+     DASHBOARD DE AUDITORIA - ADMIN ONLY
+     =================================== -->
+<script>
+// Função para abrir dashboard
+function abrirDashboardAuditoria() {
+  const userLogado = localStorage.getItem('portal_usuario_logado');
+  if (!userLogado) {
+    alert('Você precisa estar logado!');
+    return;
+  }
+
+  const user = JSON.parse(userLogado);
+  
+  // Verificar se é admin (campo já vem do login)
+  const isAdmin = user.admin === true || user.admin === 'true';
+  
+  if (!isAdmin) {
+    alert('❌ Acesso negado! Só administrador pode acessar auditoria.');
+    return;
+  }
+
+  // Mostrar a view de dashboard igual às outras
+  $('view-home').style.display='none'; 
+  $('view-funcionarios').style.display='none'; 
+  $('view-rescisao').style.display='none'; 
+  $('view-ferias').style.display='none'; 
+  $('view-importacao').style.display='none'; 
+  $('view-importacao-processos').style.display='none'; 
+  $('view-importacao-processos-arquivados').style.display='none'; 
+  $('view-importacao-medidas').style.display='none'; 
+  $('view-importacao-pagamentos').style.display='none'; 
+  $('view-solicpag').style.display='none'; 
+  $('view-cad-simples').style.display='none';
+  $('view-dashboard').style.display='flex';
+  
+  // Mostrar conteúdo de auditoria na view-dashboard
+  mudarAbaDashboardAuditoria('acessos');
+}
+
+// Funções removidas - agora usa a view-dashboard padrão
+
+function mudarAbaDashboard(aba) {
+  document.querySelectorAll('.audit-aba').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.audit-tab').forEach(el => el.classList.remove('active'));
+  if(document.getElementById(`aba-${aba}`)) {
+    document.getElementById(`aba-${aba}`).classList.add('active');
+  }
+  if(event && event.target) event.target.classList.add('active');
+  if (aba === 'stats') carregarEstatisticas();
+}
+
+function mudarAbaDashboardAuditoria(aba) {
+  // Reuse a view-dashboard mas com conteúdo de auditoria
+  const conteudo = document.getElementById('viz-conteudo');
+  if (!conteudo) return;
+  
+  let html = '';
+  if (aba === 'acessos') {
+    html = `<div style="padding: 20px;"><h2>📊 Acessos Recentes</h2><table class="audit-table" style="width:100%;"><thead><tr><th>Usuário</th><th>Tabela</th><th>Operação</th><th>Data/Hora</th></tr></thead><tbody id="audit-acessos-body"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div>`;
+  } else if (aba === 'alteracoes') {
+    html = `<div style="padding: 20px;"><h2>✏️ Alterações</h2><table class="audit-table" style="width:100%;"><thead><tr><th>Usuário</th><th>Tabela</th><th>Operação</th><th>Data/Hora</th></tr></thead><tbody id="audit-alteracoes-body"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div>`;
+  } else if (aba === 'stats') {
+    html = `<div style="padding: 20px;"><h2>📈 Estatísticas</h2><div class="audit-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:20px;"><div class="stat-card"><div class="stat-numero" id="stat-total-acessos">-</div><div class="stat-label">Total de Acessos</div></div><div class="stat-card"><div class="stat-numero" id="stat-total-alteracoes">-</div><div class="stat-label">Total de Alterações</div></div><div class="stat-card"><div class="stat-numero" id="stat-usuarios-ativos">-</div><div class="stat-label">Usuários Ativos</div></div><div class="stat-card"><div class="stat-numero" id="stat-tabelas">-</div><div class="stat-label">Tabelas Acessadas</div></div></div></div>`;
+  }
+  
+  conteudo.innerHTML = html;
+  
+  // Carregar dados
+  if (aba === 'acessos') carregarAcessos();
+  else if (aba === 'alteracoes') carregarAlteracoes();
+  else if (aba === 'stats') carregarEstatisticas();
+}
+
+async function carregarAcessos() {
+  try {
+    const { data, error } = await supabase.from('auditoria_acessos').select('*').order('data_acesso', { ascending: false }).limit(100);
+    const body = document.getElementById('audit-acessos-body');
+    
+    if (error) {
+      console.error('Erro Supabase:', error);
+      body.innerHTML = '<tr><td colspan="4">ℹ️ Nenhum acesso registrado ainda. Os dados aparecerão conforme o sistema for utilizado.</td></tr>';
+      return;
+    }
+    
+    if (!data || data.length === 0) {
+      body.innerHTML = '<tr><td colspan="4">ℹ️ Nenhum acesso registrado ainda. Os dados aparecerão conforme o sistema for utilizado.</td></tr>';
+      return;
+    }
+    
+    body.innerHTML = data.map(item => `<tr><td>${item.usuario_email || 'Sistema'}</td><td>${item.tabela_acessada}</td><td>${item.tipo_operacao}</td><td>${new Date(item.data_acesso).toLocaleString('pt-BR')}</td></tr>`).join('');
+  } catch (error) {
+    console.error('Erro ao carregar acessos:', error);
+    document.getElementById('audit-acessos-body').innerHTML = '<tr><td colspan="4">ℹ️ Nenhum acesso registrado ainda.</td></tr>';
+  }
+}
+
+async function carregarAlteracoes() {
+  try {
+    const { data, error } = await supabase.from('auditoria_alteracoes').select('*').order('data_alteracao', { ascending: false }).limit(100);
+    const body = document.getElementById('audit-alteracoes-body');
+    
+    if (error) {
+      console.error('Erro Supabase:', error);
+      body.innerHTML = '<tr><td colspan="4">ℹ️ Nenhuma alteração registrada ainda. Os dados aparecerão conforme o sistema for utilizado.</td></tr>';
+      return;
+    }
+    
+    if (!data || data.length === 0) {
+      body.innerHTML = '<tr><td colspan="4">ℹ️ Nenhuma alteração registrada ainda. Os dados aparecerão conforme o sistema for utilizado.</td></tr>';
+      return;
+    }
+    
+    body.innerHTML = data.map(item => `<tr><td>${item.usuario_email || 'Sistema'}</td><td>${item.tabela_alterada}</td><td>${item.operacao}</td><td>${new Date(item.data_alteracao).toLocaleString('pt-BR')}</td></tr>`).join('');
+  } catch (error) {
+    console.error('Erro ao carregar alterações:', error);
+    document.getElementById('audit-alteracoes-body').innerHTML = '<tr><td colspan="4">ℹ️ Nenhuma alteração registrada ainda.</td></tr>';
+  }
+}
+
+async function carregarEstatisticas() {
+  try {
+    const { count: totalAcessos, error: errAcessos } = await supabase.from('auditoria_acessos').select('*', { count: 'exact', head: true });
+    const { count: totalAlteracoes, error: errAlteracoes } = await supabase.from('auditoria_alteracoes').select('*', { count: 'exact', head: true });
+    
+    document.getElementById('stat-total-acessos').textContent = totalAcessos || 0;
+    document.getElementById('stat-total-alteracoes').textContent = totalAlteracoes || 0;
+    
+    const { data: usuarios } = await supabase.from('auditoria_acessos').select('usuario_email').limit(1000);
+    const usuariosUnicos = new Set(usuarios?.map(u => u.usuario_email) || []).size;
+    
+    const { data: tabelas } = await supabase.from('auditoria_acessos').select('tabela_acessada').limit(1000);
+    const tabelasUnicas = new Set(tabelas?.map(t => t.tabela_acessada) || []).size;
+    
+    document.getElementById('stat-usuarios-ativos').textContent = usuariosUnicos;
+    document.getElementById('stat-tabelas').textContent = tabelasUnicas;
+  } catch (error) {
+    console.error('Erro ao carregar estatísticas:', error);
+    // Manter os valores em 0 se houver erro
+    document.getElementById('stat-total-acessos').textContent = '0';
+    document.getElementById('stat-total-alteracoes').textContent = '0';
+    document.getElementById('stat-usuarios-ativos').textContent = '0';
+    document.getElementById('stat-tabelas').textContent = '0';
+  }
+}
+
+function filtrarAcessos() {
+  const usuario = document.getElementById('filtro-usuario').value.toLowerCase();
+  const data = document.getElementById('filtro-data').value;
+  document.querySelectorAll('#audit-acessos-body tr').forEach(row => {
+    const texto = row.textContent.toLowerCase();
+    const dataRow = row.querySelector('td:nth-child(4)')?.textContent || '';
+    row.style.display = (!usuario || texto.includes(usuario)) && (!data || dataRow.includes(data)) ? '' : 'none';
+  });
+}
+
+function filtrarAlteracoes() {
+  const usuario = document.getElementById('filtro-usuario-alt').value.toLowerCase();
+  const tabela = document.getElementById('filtro-tabela').value;
+  document.querySelectorAll('#audit-alteracoes-body tr').forEach(row => {
+    const texto = row.textContent.toLowerCase();
+    const tabelaRow = row.querySelector('td:nth-child(2)')?.textContent || '';
+    row.style.display = (!usuario || texto.includes(usuario)) && (!tabela || tabelaRow === tabela) ? '' : 'none';
+  });
+}
+
+// Função removida - CSS agora é inline
+
+// Limpo - modal dinâmico removido
+</script>
 
 </body>
 </html>
