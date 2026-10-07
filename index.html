@@ -5443,7 +5443,7 @@ function abrirLookupColaborador(campoDestino){
    Recepção vê todos; os demais cadastros respeitam os CCs do usuário */
 function lookupColaboradoresBase(){
   var cfg = CADASTROS_SIMPLES[stateCadSimples.chave];
-  if(cfg && cfg.ambiente === 'Recepção' && Array.isArray(state.colaboradoresTodos)) return state.colaboradoresTodos;
+  if(cfg && AMBIENTES_SEM_FILTRO_CC.indexOf(cfg.ambiente) >= 0 && Array.isArray(state.colaboradoresTodos)) return state.colaboradoresTodos;
   return state.colaboradores || [];
 }
 function renderLookupColaboradorLista(){
@@ -11688,8 +11688,8 @@ var MQP_TIPOS = ['Alteração de Funcional','Promoção','Demissão','Alteraçã
    basta editar estas listas. */
 var MQP_REGRAS = {
   alteracaoFuncional: ['Alteração de Funcional','Promoção','Alteração de Salário','Transferência','Equiparação Salarial'],
-  ccDestino:          ['Alteração de Funcional','Transferência'],
-  contrato:           ['Alteração de Funcional','Transferência'],
+  ccDestino:          ['Alteração de Funcional','Transferência','Promoção'],
+  contrato:           ['Alteração de Funcional','Transferência','Promoção'],
   avaliacao:          ['Promoção','Equiparação Salarial','Demissão'],
   anexos:             ['Promoção'],
   demissao:           ['Demissão']   /* etapas "Demissão" e "Motivo do Desligamento" */
@@ -13745,10 +13745,12 @@ function lgpdRecusar(){
    ===================================================================== */
 /* jur_pagamentos e jur_pericias ficam de fora: não têm CC nem matrícula
    que liguem a linha a um colaborador do quadro */
-/* A Recepção (rec_atendimentos) fica FORA: ela agenda atendimentos de
-   qualquer colaborador da empresa, como era originalmente. */
-var CS_TABELAS_DE_COLABORADOR = ['dp_medidas_disciplinares','jur_processos','jur_processos_arquivados',
-  'med_afastados','med_controle_asos','med_exames','ben_beneficiarios','trilha_participacoes'];
+/* Ficam FORA do filtro por CC (funcionam como originalmente, vendo tudo):
+   - Recepção (rec_atendimentos): atende qualquer colaborador da empresa;
+   - Jurídico (processos ativos/arquivados, medidas disciplinares,
+     pagamentos e perícias). */
+var CS_TABELAS_DE_COLABORADOR = ['med_afastados','med_controle_asos','med_exames','ben_beneficiarios','trilha_participacoes'];
+var AMBIENTES_SEM_FILTRO_CC = ['Recepção','Jurídico'];
 function ccsDoUsuario(){ var u = state.usuarioLogado; return (u && Array.isArray(u.ccsColaboradores)) ? u.ccsColaboradores : []; }
 function usuarioRestritoPorCc(){ return ccsDoUsuario().length > 0; }
 function colabCcPermitido(c){
@@ -13758,6 +13760,8 @@ function colabCcPermitido(c){
 /* linhas de cadastros ligados a colaboradores */
 function linhaCcPermitida(tabela, linha){
   if(!usuarioRestritoPorCc() || CS_TABELAS_DE_COLABORADOR.indexOf(tabela) < 0) return true;
+  var cfgT = CADASTROS_SIMPLES[Object.keys(CADASTROS_SIMPLES).find(function(k){ return CADASTROS_SIMPLES[k].tabela === tabela; })];
+  if(cfgT && AMBIENTES_SEM_FILTRO_CC.indexOf(cfgT.ambiente) >= 0) return true;
   var ccs = ccsDoUsuario();
   var cc = linha.centro_custo !== undefined ? linha.centro_custo : (linha.cc !== undefined ? linha.cc : undefined);
   if(cc !== undefined && cc !== null && String(cc).trim() !== '') return ccs.indexOf(String(cc).trim()) >= 0;
