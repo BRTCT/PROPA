@@ -863,6 +863,32 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .lgpd-recusar{background:#e5e7eb;color:#333;} .lgpd-recusar:hover{background:#d1d5db;}
   .lgpd-modal .lgpd-rodape{margin:18px 0 0;font-size:11px;color:#999;}
   @media (max-width:520px){ .lgpd-modal{padding:24px 20px 18px;} .lgpd-modal h2{font-size:20px;} }
+  /* campo: CCs com acesso aos colaboradores */
+  .ccsm-box{border:1px solid #d0d0d0;border-radius:3px;background:#fff;padding:8px;}
+  .ccsm-topo{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin-bottom:6px;font-size:12px;}
+  .ccsm-topo a{cursor:pointer;color:var(--azul);}
+  .ccsm-contador{flex:1;color:#5a6570;}
+  .ccsm-lista{display:grid;grid-template-columns:repeat(auto-fill, minmax(210px, 1fr));gap:2px 10px;max-height:220px;overflow-y:auto;border-top:1px solid #eef0f2;padding-top:6px;}
+  .ccsm-item{display:flex;gap:6px;align-items:baseline;font-size:12px;padding:3px 4px;border-radius:3px;cursor:pointer;}
+  .ccsm-item:hover{background:#f3f6f9;}
+  .ccsm-item span{color:#6b747d;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .ccsm-item.inativo{opacity:.6;}
+  /* Recepção - histórico de comparecimento */
+  .rec-hist-dia{margin-bottom:18px;}
+  .rec-hist-dia-tit{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #e4e7ea;padding:4px 2px 6px;margin-bottom:6px;font-size:13.5px;font-weight:700;color:#26323b;}
+  .rec-hist-dia-tit b{font-size:12px;color:#6b747d;font-weight:600;}
+  .rec-hist-hora{display:inline-block;background:#e7f6e2;color:#0d8a2e;font-weight:700;border-radius:4px;padding:2px 8px;margin-right:6px;}
+  /* ===== Auditoria ===== */
+  .aud-filtros{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;}
+  .aud-tab tbody tr{cursor:pointer;} .aud-tab tbody tr:hover td{background:#f5f9fc;}
+  .aud-op{display:inline-block;padding:2px 9px;border-radius:12px;font-size:11.5px;font-weight:700;white-space:nowrap;}
+  .aud-op.ins{background:#e7f6e2;color:#0d8a2e;} .aud-op.upd{background:#e0f2fe;color:#0369a1;} .aud-op.del{background:#fdecea;color:#d03b3b;}
+  .aud-resumo{font-size:12px;color:#3a454e;max-width:340px;}
+  .aud-vazio{color:#9aa3ab;font-style:normal;}
+  .aud-antes{background:#fdf3f2;color:#8a2a1f;} .aud-depois{background:#f1faf3;color:#1d6b33;}
+  .aud-seta{color:#9aa3ab;text-align:center;}
+  .aud-antes code,.aud-depois code{font-size:11px;white-space:pre-wrap;word-break:break-word;}
+  .aud-rodape{font-size:11.5px;color:#7a838c;margin-top:14px;}
   /* tempo real */
   .rt-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#7a838c;margin-right:8px;white-space:nowrap;vertical-align:middle;}
   .rt-status i{width:8px;height:8px;border-radius:50%;background:#b8bec5;}
@@ -2702,7 +2728,7 @@ var AMBIENTES = [
       {
         titulo: 'Atendimentos',
         sub: 'Selecione a rotina na lista abaixo',
-        itens: ['Cadastro de Atendimento','Atendimentos Agendados']
+        itens: ['Cadastro de Atendimento','Atendimentos Agendados','Histórico de Comparecimento']
       }
     ]
   },
@@ -3009,7 +3035,10 @@ async function dpCarregarDadosIniciais(){
     if(resPag.error) throw resPag.error;
     var resChk = await dpSelecionarTudo('dp_checklist_demissional', 'matricula');
     if(resChk.error) throw resChk.error;
-    state.colaboradores = resColab.data.map(dpLinhaParaColaborador);
+    /* lista completa (usada pela Recepção, que atende qualquer colaborador)
+       e a lista filtrada pelos CCs do usuário (usada no restante do portal) */
+    state.colaboradoresTodos = resColab.data.map(dpLinhaParaColaborador);
+    state.colaboradores = state.colaboradoresTodos.filter(colabCcPermitido);
     state.pagamentosRealizados = {};
     resPag.data.forEach(function(r){
       if(r.pago){ state.pagamentosRealizados[solicPagChave(r.tipo, r.data_pagamento)] = true; }
@@ -3315,7 +3344,8 @@ function loginEntrarComoUsuario(registro, restaurando){
     ambientesPermitidos: Array.isArray(registro.ambientes_permitidos) ? registro.ambientes_permitidos : null,
     mqpCcs: Array.isArray(registro.mqp_ccs) ? registro.mqp_ccs : [],
     mqpEtapas: Array.isArray(registro.mqp_etapas) ? registro.mqp_etapas : [],
-    mqpExclusivo: registro.mqp_exclusivo === 'Sim'
+    mqpExclusivo: registro.mqp_exclusivo === 'Sim',
+    ccsColaboradores: Array.isArray(registro.ccs_colaboradores) ? registro.ccs_colaboradores.map(function(x){ return String(x).trim(); }).filter(Boolean) : []
   };
   // Salvar estado de login em localStorage (permite atualizar a página sem sair)
   try {
@@ -3333,6 +3363,7 @@ function loginEntrarComoUsuario(registro, restaurando){
   $('view-login').style.display = 'none';
   dpCarregarDadosIniciais();
   if(typeof rtIniciar === 'function') rtIniciar();
+  if(typeof auditDefinirUsuario === 'function'){ auditDefinirUsuario(state.usuarioLogado); auditRegistrarAcesso(restaurando ? 'sessao_retomada' : 'login', { ambiente: null }); }
   if(typeof lgpdVerificar === 'function') lgpdVerificar();
   /* usuário "somente MQP": vai direto para o ambiente MQP */
   if(state.usuarioLogado.mqpExclusivo){
@@ -3348,9 +3379,11 @@ function loginEntrarComoUsuario(registro, restaurando){
 }
 
 function logOff(){
+  if(typeof auditRegistrarAcesso === 'function' && state.usuarioLogado) auditRegistrarAcesso('logout');
   if(typeof rtParar === 'function') rtParar();
   var lgpdOv = document.getElementById('lgpd-overlay'); if(lgpdOv) lgpdOv.remove();
   state.usuarioLogado = null;
+  if(typeof auditDefinirUsuario === 'function') setTimeout(function(){ auditDefinirUsuario(null); }, 1500);
   // Limpar estado de login do localStorage
   try {
     localStorage.removeItem('portal_usuario_logado');
@@ -3522,7 +3555,6 @@ var ROTINAS_PRONTAS = {
   'Movimentações::Férias': 'abrirFerias',
   'Movimentações::Rescisão': 'abrirRescisao',
   'Miscelânia::Importação de Ativo': 'abrirImportacao',
-  'Relatórios e Dashboards::Dashboard de Auditoria': 'abrirDashboardAuditoria',
   'Relatórios e Dashboards::Quadro de Colaboradores': 'abrirDashboardQuadro',
   'Programações::Calendário': 'abrirCalendario',
   'Relatórios e Dashboards::Indicadores de RH': 'abrirDashboardIndicadores',
@@ -3553,6 +3585,7 @@ var ROTINAS_PRONTAS = {
   'Configuração::Cadastro de Atendentes': 'abrirCadastroAtendentes',
   'Atendimentos::Cadastro de Atendimento': 'abrirCadastroAtendimento',
   'Atendimentos::Atendimentos Agendados': 'abrirDashboardAtendimentos',
+  'Atendimentos::Histórico de Comparecimento': 'abrirRecHistorico',
   'Calendário::Calendário': 'abrirCalendario',
   'Emissão de Documentos::Emissão de Documentos': 'abrirEmissaoDocumentos',
   'Cadastros da Trilha::Salas': 'abrirTrilhaSalas',
@@ -3573,6 +3606,7 @@ var ROTINAS_PRONTAS = {
   'Alertas e Painéis::Central de Alertas': 'abrirCiAlertas',
   'Alertas e Painéis::Calendário de Pagamentos': 'abrirCiCalendario',
   'Alertas e Painéis::Painel Financeiro': 'abrirCiPainel',
+  'Relatórios e Dashboards::Dashboard de Auditoria': 'abrirDashboardAuditoria',
   'Movimentação de Pessoal::Criar MQP': 'abrirMqpCriar',
   'Movimentação de Pessoal::Minhas MQPs': 'abrirMqpLista',
   'Movimentação de Pessoal::Aprovações Pendentes': 'abrirMqpAprovacoes',
@@ -3581,9 +3615,14 @@ var ROTINAS_PRONTAS = {
   'Movimentação de Pessoal::MQPs para Correção': 'abrirMqpCorrecao'
 };
 
+var ROTINAS_SO_SEM_RESTRICAO_CC = ['Miscelânia::Importação de Ativo'];
 function acionarRotina(chave){
+  if(typeof usuarioRestritoPorCc === 'function' && usuarioRestritoPorCc() && ROTINAS_SO_SEM_RESTRICAO_CC.indexOf(chave) >= 0){
+    toast('A importação do quadro de colaboradores só pode ser feita por usuários com acesso a todos os CCs.', true, 7000); return;
+  }
   if(typeof rotinaVisivel === 'function' && !rotinaVisivel(chave)){ toast('Esta rotina é exclusiva para administradores.', true); return; }
   var fn = ROTINAS_PRONTAS[chave];
+  if(fn && typeof auditRegistrarAcesso === 'function') auditRegistrarAcesso('rotina', { rotina: chave });
   if(fn && typeof window[fn] === 'function'){
     // Salvar rotina atual em localStorage
     try {
@@ -3599,7 +3638,7 @@ function acionarRotina(chave){
 }
 
 /* rotinas que só administradores enxergam (menu, tela inicial e acesso) */
-var ROTINAS_SO_ADMIN = ['Movimentação de Pessoal::Configuração do Fluxo'];
+var ROTINAS_SO_ADMIN = ['Movimentação de Pessoal::Configuração do Fluxo','Relatórios e Dashboards::Dashboard de Auditoria'];
 function rotinaVisivel(chave){
   if(ROTINAS_SO_ADMIN.indexOf(chave) < 0) return true;
   return !!(state.usuarioLogado && state.usuarioLogado.admin);
@@ -3982,11 +4021,13 @@ var CADASTROS_SIMPLES = {
          restringindo o acesso dela sem querer. Num cadastro NOVO, começa tudo
          desmarcado (menor privilégio por padrão). */
       { chave:'ambientes_permitidos', label:'Ambientes com Acesso', tipo:'ambientes-checkbox', largura:'full' },
+      /* CCs cujos colaboradores o usuário enxerga. Vazio = todos os CCs. */
+      { chave:'ccs_colaboradores', label:'CCs com acesso aos colaboradores (nenhum marcado = todos os CCs)', tipo:'ccs-multi', largura:'full' },
       { chave:'mqp_ccs', label:'MQP - Centros de Custo (Solicitante ou Aprovador/Gestor)', tipo:'mqp-ccs', largura:'full' },
       { chave:'mqp_etapas', label:'MQP - Etapas que aprova', tipo:'mqp-etapas', largura:'full' }
     ],
     larguraDialogo: '760px',
-    colunasTabela: ['usuario','nome','email','status','admin','mqp_exclusivo','ambientes_permitidos','mqp_ccs','mqp_etapas']
+    colunasTabela: ['usuario','nome','email','status','admin','mqp_exclusivo','ccs_colaboradores','ambientes_permitidos','mqp_ccs','mqp_etapas']
   },
   /* ================= CONTROLE INTEGRADO (ambiente 08) ================= */
   ci_contratos: {
@@ -4778,6 +4819,15 @@ function csFilialDoColaborador(matricula, nome){
   return '';
 }
 
+/* compara valor do banco com o filtro da lista suspensa: "true" aceita
+   true, 'Sim', 'S', 'true', 'ATIVO', 1 (e "false" o contrário) */
+function csValorConfere(v, f){
+  if(typeof f === 'boolean'){
+    var t = (v === true || v === 1 || /^(true|sim|s|ativo|ativa|1|x)$/i.test(String(v == null ? '' : v).trim()));
+    return f ? t : !t;
+  }
+  return v === f;
+}
 function csAplicarCamposDerivados(cfg){
   if(!cfg || !cfg.camposDerivados) return;
   stateCadSimples.dados.forEach(function(item){
@@ -5068,14 +5118,14 @@ async function carregarCadSimples(){
   try{
     var resp = await dpSelecionarTudo(cfg.tabela, 'created_at', false);
     if(resp.error) throw resp.error;
-    stateCadSimples.dados = resp.data || [];
+    stateCadSimples.dados = (resp.data || []).filter(function(l){ return linhaCcPermitida(cfg.tabela, l); });
     csAplicarCamposDerivados(cfg);
     if(cfg.filtrosColuna) renderCsFiltroColunas(cfg);
     renderCadSimplesTabela();
   } catch(erro){
     $('cs-filtro-count').textContent = '';
     $('cs-empty').style.display = 'block';
-    $('cs-empty').innerHTML = 'Não foi possível carregar os dados do Supabase.';
+    $('cs-empty').innerHTML = 'Não foi possível carregar os dados do Supabase.<br><small style="color:#a32a1f;">' + esc(dpFormatarErroSupabase('Motivo', erro)) + '</small>';
     toast(dpFormatarErroSupabase('Não foi possível carregar ' + cfg.titulo.toLowerCase(), erro), true, 9000);
     console.error('Falha ao carregar ' + cfg.tabela + ' do Supabase:', erro);
   }
@@ -5183,6 +5233,7 @@ function renderCadSimplesTabela(){
       var txt;
       if(campo && campo.tipo === 'ambientes-checkbox'){ txt = esc(formatarAmbientesPermitidos(val)); }
       else if(campo && campo.tipo === 'checkbox'){ txt = val ? 'Sim' : 'Não'; }
+      else if(campo && campo.tipo === 'ccs-multi'){ txt = Array.isArray(val) && val.length ? (val.length <= 4 ? val.map(esc).join(', ') : val.slice(0, 4).map(esc).join(', ') + ' +' + (val.length - 4)) : '<span style="color:#7a838c;">todos</span>'; }
       else if(campo && campo.tipo === 'mqp-ccs'){ txt = Array.isArray(val) && val.length ? val.map(function(x){ return esc(x.cc) + (x.papel === 'Aprovador' ? ' <b title="Gestor aprovador">(A)</b>' : ''); }).join(', ') : '-'; }
       else if(campo && campo.tipo === 'mqp-etapas'){ txt = Array.isArray(val) && val.length ? val.map(function(k){ var e = mqpEtapa(k); return esc(e ? e.nome : k); }).join(', ') : '-'; }
       else if(campo && campo.tipo === 'etapas'){ txt = Array.isArray(val) && val.length ? val.length + ' etapa(s)' : '-'; }
@@ -5267,6 +5318,14 @@ function csCampoHtml(c, item){
     inputHtml = '<select id="cs-f-' + c.chave + '" class="cs-input cs-select-dinamico" data-chave="' + c.chave + '" data-fonte="' + c.fonte + '" data-campo-fonte="' + c.campoFonte + '" data-valor="' + esc(val) + '">'
       + (val ? '<option value="' + esc(val) + '" selected>' + esc(val) + '</option>' : '<option value="">Selecione…</option>')
       + '</select>';
+  } else if(c.tipo === 'ccs-multi'){
+    stCcsMulti = Array.isArray(val) ? val.map(String) : [];
+    inputHtml = '<div id="cs-f-' + c.chave + '" class="ccsm-box">'
+      + '<div class="ccsm-topo"><input type="text" class="cs-input" placeholder="Buscar CC…" oninput="ccsmFiltrar(this.value)" style="max-width:220px;">'
+      + '<span id="ccsm-contador" class="ccsm-contador"></span>'
+      + '<a onclick="ccsmTodos(true)">marcar os visíveis</a><a onclick="ccsmTodos(false)">limpar</a></div>'
+      + '<div id="ccsm-lista" class="ccsm-lista">Carregando centros de custo…</div></div>';
+    setTimeout(function(){ ccsmCarregar().then(ccsmRender); }, 0);
   } else if(c.tipo === 'mqp-ccs'){
     stMqpCcsForm = Array.isArray(val) ? val.map(function(x){ return { cc: x.cc, papel: x.papel || 'Solicitante' }; }) : [];
     inputHtml = '<div id="cs-f-' + c.chave + '" class="mqp-ccs-box"><div id="mqp-ccs-lista"></div>'
@@ -5380,9 +5439,16 @@ function abrirLookupColaborador(campoDestino){
   $('lookup-colab-busca').focus();
 }
 
+/* lista de colaboradores para a busca (lupa) do cadastro aberto: a
+   Recepção vê todos; os demais cadastros respeitam os CCs do usuário */
+function lookupColaboradoresBase(){
+  var cfg = CADASTROS_SIMPLES[stateCadSimples.chave];
+  if(cfg && cfg.ambiente === 'Recepção' && Array.isArray(state.colaboradoresTodos)) return state.colaboradoresTodos;
+  return state.colaboradores || [];
+}
 function renderLookupColaboradorLista(){
   var busca = ($('lookup-colab-busca').value || '').trim().toLowerCase();
-  var lista = state.colaboradores.filter(function(p){
+  var lista = lookupColaboradoresBase().filter(function(p){
     /* Mesma regra de exibição da tela de Funcionários: colaboradores
        marcados como removidos pela Importação de Ativo não aparecem aqui -
        não faz sentido lançar uma medida disciplinar pra alguém que já saiu
@@ -5414,7 +5480,7 @@ function selecionarColaboradorLookup(matricula){
   var cfg = CADASTROS_SIMPLES[stateCadSimples.chave];
   if(!cfg) return;
   var campo = cfg.campos.find(function(c){ return c.chave === campoDestino; });
-  var colab = state.colaboradores.find(function(c){ return c.matricula === matricula; });
+  var colab = lookupColaboradoresBase().find(function(c){ return c.matricula === matricula; });
   if(!campo || !colab) return;
 
   var elDestino = $('cs-f-' + campoDestino);
@@ -5525,7 +5591,7 @@ function csCarregarSelectDinamico(c){
         dados = dados.filter(function(d){
           if(typeof filtro === 'function') return filtro(d);
           for(var k in filtro){
-            if(d[k] !== filtro[k]) return false;
+            if(!csValorConfere(d[k], filtro[k])) return false;
           }
           return true;
         });
@@ -5624,7 +5690,7 @@ function csAtualizarAutocomplete(c, cfg, busca){
         dados = dados.filter(function(d){
           if(typeof filtro === 'function') return filtro(d);
           for(var k in filtro){
-            if(d[k] !== filtro[k]) return false;
+            if(!csValorConfere(d[k], filtro[k])) return false;
           }
           return true;
         });
@@ -5749,6 +5815,10 @@ async function salvarCadSimples(){
       var wrap = $('cs-f-' + c.chave);
       var marcados = wrap ? Array.prototype.map.call(wrap.querySelectorAll('input[type=checkbox]:checked'), function(el){ return el.value; }) : [];
       payload[c.chave] = marcados;
+      return;
+    }
+    if(c.tipo === 'ccs-multi'){
+      payload[c.chave] = stCcsMulti.slice().sort(function(a,b){ return a.localeCompare(b, 'pt-BR', { numeric:true }); });
       return;
     }
     if(c.tipo === 'mqp-ccs'){
@@ -11696,11 +11766,7 @@ function mqpMostrarTela(titulo){
 async function mqpCarregarCCs(){
   if(stMqp.ccs) return;
   var lista = [];
-  try{
-    var r = await dpSelecionarTudo('dp_centros_custo', 'codigo');
-    if(!r.error) lista = (r.data || []).filter(function(c){ return !/inativ/i.test(c.status || ''); })
-      .map(function(c){ return { codigo: String(c.codigo || '').trim(), descricao: c.descricao || '' }; });
-  }catch(e){}
+  try{ lista = (await ccListaCompleta()).filter(function(c){ return !c.inativo; }).map(function(c){ return { codigo:c.codigo, descricao:c.descricao }; }); }catch(e){}
   if(!lista.length){
     var set = {};
     (state.colaboradores || []).forEach(function(c){ var v = String(c.centroCusto || '').trim(); if(v) set[v] = true; });
@@ -12659,9 +12725,8 @@ function mqpCcsRender(){
 }
 var stMqpCcsOpcoes = null;
 async function mqpCcsCarregarOpcoes(){
-  if(stMqpCcsOpcoes) return;
-  var r = await dpSelecionarTudo('dp_centros_custo', 'codigo');
-  stMqpCcsOpcoes = (r.data || []).filter(function(c){ return !/inativ/i.test(c.status || ''); }).map(function(c){ return { codigo:String(c.codigo || '').trim(), descricao:c.descricao || '' }; });
+  if(stMqpCcsOpcoes && stMqpCcsOpcoes.length) return;
+  stMqpCcsOpcoes = (await ccListaCompleta()).filter(function(c){ return !c.inativo; });
 }
 
 /* =====================================================================
@@ -12724,9 +12789,9 @@ function abrirMqpFluxo(){
   if(!mqpFluxoAdmin()){ toast('A Configuração do Fluxo é exclusiva para administradores.', true); return; }
   mqpMostrarTela('Configuração do Fluxo');
   $('viz-conteudo').innerHTML = '<div style="padding:40px;text-align:center;">Carregando…</div>';
-  Promise.all([mqpCarregarFluxos(), mqpCarregarUsuarios(), dpSelecionarTudo('dp_centros_custo', 'codigo')]).then(function(r){
+  Promise.all([mqpCarregarFluxos(), mqpCarregarUsuarios(), ccListaCompleta()]).then(function(r){
     stFluxo.usuarios = (r[1] || []).filter(function(u){ return !/inativ/i.test(u.status || ''); }).sort(function(a,b){ return String(a.nome).localeCompare(String(b.nome), 'pt-BR'); });
-    stFluxo.ccs = ((r[2] && r[2].data) || []).filter(function(c){ return !/inativ/i.test(c.status || ''); }).map(function(c){ return { codigo:String(c.codigo || '').trim(), descricao:c.descricao || '' }; });
+    stFluxo.ccs = (r[2] || []).filter(function(c){ return !c.inativo; });
     mqpFluxoEditar(stFluxo.tipo, true);
   }).catch(function(e){
     $('viz-conteudo').innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Não foi possível carregar.<br><small>' + esc(dpFormatarErroSupabase('Supabase', e)) + '</small><br><small>Confira se o SQL da Configuração do Fluxo foi rodado.</small></div>';
@@ -13284,7 +13349,7 @@ var RT = { canal: null, ok: false, instalado: false, tela: null, pendentes: {}, 
 var RT_TABELAS = ['mqp_solicitacoes','mqp_fluxos','usuarios','ci_contratos','ci_aditivos','ci_boletos',
   'trilha_salas','trilha_instrutores','trilha_treinamentos','trilha_turmas','trilha_participacoes','trilha_funcao_treinamentos',
   'dp_centros_custo','dp_medidas_disciplinares','jur_pagamentos','jur_pericias','jur_processos','jur_processos_arquivados',
-  'med_afastados','med_controle_asos','med_exames','rec_atendentes','rec_atendimentos','ben_beneficiarios'];
+  'med_afastados','med_controle_asos','med_exames','rec_atendentes','rec_atendimentos','rec_atendimentos_notificacoes','ben_beneficiarios'];
 
 function rtRegistro(){
   var MQP = ['mqp_solicitacoes','mqp_fluxos','usuarios'], CI = ['ci_contratos','ci_aditivos','ci_boletos'];
@@ -13300,6 +13365,8 @@ function rtRegistro(){
     mqpAprovDetalhe:     dash(MQP, async function(id){ await mqpCarregarUsuarios(); var r = await mqpCarregarMqps(); if(!r.error){ stMqpAprov.dados = r.data || []; await mqpAprovDetalhe(id); } }),
     mqpAprovadaDetalhe:  dash(MQP, async function(id){ await mqpCarregarUsuarios(); var r = await mqpCarregarMqps(); if(!r.error){ stMqpAprov.dados = r.data || []; await mqpAprovadaDetalhe(id); } }),
     abrirMqpFluxo:       dash(['mqp_fluxos','usuarios','dp_centros_custo'], async function(){ if(stFluxo.sujo) return 'ocupado'; await mqpCarregarFluxos(); await mqpCarregarUsuarios(); mqpFluxoEditar(stFluxo.tipo, true); }),
+    abrirRecHistorico: dash(['rec_atendimentos_notificacoes'], async function(){ await recHistCarregar(); }),
+    abrirDashboardAuditoria: dash(['auditoria_acessos','auditoria_alteracoes'], async function(){ await auditCarregar(); }),
     abrirCiAlertas:      dash(CI, async function(){ await ciCarregar(); renderCiAlertas(); }),
     abrirCiCalendario:   dash(CI, async function(){ await ciCarregar(); renderCiCalendario(); }),
     abrirCiFicha:        dash(CI, async function(){ await ciCarregar(); renderCiFicha(); }),
@@ -13317,7 +13384,7 @@ async function csRecarregarSilencioso(){
   if(/^ci_/.test(cfg.tabela)) { try{ await ciCarregar(); }catch(e){} }
   var resp = await dpSelecionarTudo(cfg.tabela, 'created_at', false);
   if(resp.error) return;
-  stateCadSimples.dados = resp.data || [];
+  stateCadSimples.dados = (resp.data || []).filter(function(l){ return linhaCcPermitida(cfg.tabela, l); });
   csAplicarCamposDerivados(cfg);
   if(cfg.filtrosColuna) renderCsFiltroColunas(cfg);
   renderCadSimplesTabela();
@@ -13664,6 +13731,485 @@ function lgpdRecusar(){
   var ov = $('lgpd-overlay'); if(ov) ov.remove();
   logOff();
   toast('Você saiu do portal. Para usar, é preciso aceitar o processamento de dados pessoais.', true, 8000);
+}
+
+
+/* =====================================================================
+   ACESSO POR CENTRO DE CUSTO (cadastro de Usuários > "CCs com acesso aos
+   colaboradores"). Vazio = todos. Com CCs marcados, o usuário só recebe
+   os colaboradores desses CCs (a lista é filtrada ao carregar, então
+   vale para Funcionários, férias, rescisão, painéis, buscas de nome etc.)
+   e os cadastros ligados a colaboradores (medidas, processos, ASOs,
+   perícias, afastados, benefícios, participações...) também são
+   filtrados pelo CC ou pela matrícula.
+   ===================================================================== */
+/* jur_pagamentos e jur_pericias ficam de fora: não têm CC nem matrícula
+   que liguem a linha a um colaborador do quadro */
+/* A Recepção (rec_atendimentos) fica FORA: ela agenda atendimentos de
+   qualquer colaborador da empresa, como era originalmente. */
+var CS_TABELAS_DE_COLABORADOR = ['dp_medidas_disciplinares','jur_processos','jur_processos_arquivados',
+  'med_afastados','med_controle_asos','med_exames','ben_beneficiarios','trilha_participacoes'];
+function ccsDoUsuario(){ var u = state.usuarioLogado; return (u && Array.isArray(u.ccsColaboradores)) ? u.ccsColaboradores : []; }
+function usuarioRestritoPorCc(){ return ccsDoUsuario().length > 0; }
+function colabCcPermitido(c){
+  var ccs = ccsDoUsuario(); if(!ccs.length) return true;
+  return ccs.indexOf(String(c.centroCusto || '').trim()) >= 0;
+}
+/* linhas de cadastros ligados a colaboradores */
+function linhaCcPermitida(tabela, linha){
+  if(!usuarioRestritoPorCc() || CS_TABELAS_DE_COLABORADOR.indexOf(tabela) < 0) return true;
+  var ccs = ccsDoUsuario();
+  var cc = linha.centro_custo !== undefined ? linha.centro_custo : (linha.cc !== undefined ? linha.cc : undefined);
+  if(cc !== undefined && cc !== null && String(cc).trim() !== '') return ccs.indexOf(String(cc).trim()) >= 0;
+  var mat = linha.matricula !== undefined ? String(linha.matricula || '').trim() : '';
+  if(mat) return (state.colaboradores || []).some(function(c){ return String(c.matricula || '').trim() === mat; });
+  var nome = linha.nome || linha.nome_colaborador || linha.colaborador || linha.reclamante || linha.funcionario;
+  if(nome){ var n = normalizeHeader(nome); return (state.colaboradores || []).some(function(c){ return normalizeHeader(c.nome) === n; }); }
+  return false;
+}
+
+/* campo "ccs-multi" do cadastro de Usuários */
+var stCcsMulti = [], stCcsMultiOpcoes = null, stCcsMultiBusca = '';
+async function ccsmCarregar(){
+  if(stCcsMultiOpcoes && stCcsMultiOpcoes.length) return;
+  stCcsMultiOpcoes = await ccListaCompleta();
+}
+function ccsmVisiveis(){
+  var q = normalizeHeader(stCcsMultiBusca);
+  var todos = (stCcsMultiOpcoes || []).slice();
+  stCcsMulti.forEach(function(k){ if(!todos.some(function(c){ return c.codigo === k; })) todos.push({ codigo:k, descricao:'(não encontrado no cadastro de CCs)' }); });
+  return todos.filter(function(c){ return !q || normalizeHeader(c.codigo + ' ' + c.descricao).indexOf(q) >= 0; });
+}
+function ccsmRender(){
+  var el = $('ccsm-lista'); if(!el) return;
+  var lista = ccsmVisiveis();
+  el.innerHTML = lista.length ? lista.map(function(c){
+    return '<label class="ccsm-item' + (c.inativo ? ' inativo' : '') + '"><input type="checkbox"' + (stCcsMulti.indexOf(c.codigo) >= 0 ? ' checked' : '') + ' onchange="ccsmMarcar(this.dataset.cc, this.checked)" data-cc="' + esc(c.codigo) + '">'
+      + '<b>' + esc(c.codigo) + '</b><span>' + esc(c.descricao || '') + (c.inativo ? ' (inativo)' : '') + '</span></label>';
+  }).join('') : '<div style="color:#7a838c;font-size:12px;padding:6px;">' + (stCcsMultiBusca ? 'Nenhum CC encontrado para "' + esc(stCcsMultiBusca) + '".' : 'Nenhum CC encontrado no cadastro de Centros de Custo nem no quadro de colaboradores.') + '</div>';
+  var cont = $('ccsm-contador');
+  if(cont) cont.innerHTML = stCcsMulti.length ? '<b>' + stCcsMulti.length + '</b> CC(s) marcado(s): só verá colaboradores deles' : 'Nenhum marcado: vê <b>todos</b> os colaboradores';
+}
+function ccsmMarcar(cc, ok){ stCcsMulti = stCcsMulti.filter(function(x){ return x !== cc; }); if(ok) stCcsMulti.push(cc); ccsmRender(); }
+function ccsmFiltrar(v){ stCcsMultiBusca = v; ccsmRender(); }
+function ccsmTodos(marcar){
+  var vis = ccsmVisiveis().map(function(c){ return c.codigo; });
+  if(marcar) vis.forEach(function(k){ if(stCcsMulti.indexOf(k) < 0) stCcsMulti.push(k); });
+  else stCcsMulti = stCcsMultiBusca ? stCcsMulti.filter(function(k){ return vis.indexOf(k) < 0; }) : [];
+  ccsmRender();
+}
+
+
+/* =====================================================================
+   LISTA COMPLETA DE CENTROS DE CUSTO
+   Junta o cadastro de Centros de Custo (dp_centros_custo) com todos os
+   CCs que aparecem no quadro de colaboradores (dp_colaboradores). Assim a
+   lista nunca vem vazia só porque o cadastro de CCs está incompleto.
+   Usada no cadastro de Usuários, na Configuração do Fluxo e no MQP.
+   ===================================================================== */
+var ccListaCache = null;
+async function ccListaCompleta(forcar){
+  if(ccListaCache && !forcar) return ccListaCache;
+  var mapa = {};
+  try{
+    var r = await dpSelecionarTudo('dp_centros_custo', 'codigo');
+    (r.data || []).forEach(function(c){
+      var k = String(c.codigo || '').trim(); if(!k) return;
+      mapa[k] = { codigo: k, descricao: c.descricao || '', inativo: /inativ/i.test(c.status || '') };
+    });
+  }catch(e){ console.warn('Cadastro de CCs indisponível', e); }
+  /* CCs do quadro de colaboradores (só a coluna centro_custo, de 1000 em 1000) */
+  try{
+    var ini = 0;
+    while(true){
+      var q = await sbClient.from('dp_colaboradores').select('centro_custo').range(ini, ini + 999);
+      if(q.error) throw q.error;
+      (q.data || []).forEach(function(l){
+        var k = String(l.centro_custo || '').trim();
+        if(k && !mapa[k]) mapa[k] = { codigo: k, descricao: '', inativo: false };
+      });
+      if(!q.data || q.data.length < 1000) break;
+      ini += 1000;
+    }
+  }catch(e){
+    console.warn('CCs do quadro indisponíveis, usando os já carregados', e);
+    (state.colaboradores || []).forEach(function(c){ var k = String(c.centroCusto || '').trim(); if(k && !mapa[k]) mapa[k] = { codigo:k, descricao:'', inativo:false }; });
+  }
+  var lista = Object.keys(mapa).map(function(k){ return mapa[k]; }).sort(function(a,b){ return a.codigo.localeCompare(b.codigo, 'pt-BR', { numeric:true }); });
+  if(lista.length) ccListaCache = lista;
+  return lista;
+}
+
+/* =====================================================================
+   AUDITORIA
+   - Cada requisição ao Supabase leva o usuário do portal nos cabeçalhos
+     x-portal-usuario / x-portal-nome. Os triggers do banco (SQL da
+     auditoria) usam isso para gravar QUEM fez cada inclusão, alteração e
+     exclusão em auditoria_alteracoes, com os valores antes e depois.
+   - O portal grava em auditoria_acessos: login, saída, sessão retomada e
+     cada rotina aberta.
+   - Dashboard de Auditoria (Departamento Pessoal > Relatórios e
+     Dashboards): só administradores.
+   ===================================================================== */
+var AUDIT_CABECALHO_DESLIGADO = false;
+/* Identifica o usuário nas requisições (para a auditoria saber QUEM alterou).
+   Antes de ativar, faz uma consulta rápida e direta com o cabeçalho: se o
+   servidor recusar (falha de rede/CORS), a identificação não é ativada e o
+   portal segue funcionando normalmente (as alterações continuam sendo
+   auditadas, só que como "sistema"). */
+function auditAplicarCabecalho(u){
+  var h = sbClient && sbClient.rest && sbClient.rest.headers; if(!h) return;
+  var set = function(k, v){ if(typeof h.set === 'function'){ if(v) h.set(k, v); else h.delete(k); } else { if(v) h[k] = v; else delete h[k]; } };
+  set('x-portal-usuario', u ? String(u.usuario || '').replace(/[^\x20-\x7E]/g, '') : '');
+  set('x-portal-nome', u ? encodeURIComponent(String(u.nome || '')) : '');
+}
+async function auditDefinirUsuario(u){
+  if(!u){ auditAplicarCabecalho(null); return; }
+  if(AUDIT_CABECALHO_DESLIGADO) return;
+  try{
+    var ctrl = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    var timer = ctrl ? setTimeout(function(){ ctrl.abort(); }, 8000) : null;
+    var r = await fetch(SUPABASE_URL + '/rest/v1/usuarios?select=id&limit=1', {
+      headers: { apikey: SUPABASE_KEY, Authorization: 'Bearer ' + SUPABASE_KEY, 'x-portal-usuario': String(u.usuario || '').replace(/[^\x20-\x7E]/g, ''), 'x-portal-nome': encodeURIComponent(String(u.nome || '')) },
+      signal: ctrl ? ctrl.signal : undefined
+    });
+    if(timer) clearTimeout(timer);
+    if(!r.ok && r.status >= 500) throw new Error('HTTP ' + r.status);
+    if(state.usuarioLogado && state.usuarioLogado.usuario === u.usuario) auditAplicarCabecalho(u);
+  }catch(e){
+    AUDIT_CABECALHO_DESLIGADO = true;
+    auditAplicarCabecalho(null);
+    console.warn('Auditoria: o servidor não aceitou a identificação do usuário; seguindo sem ela.', e);
+  }
+}
+function auditRegistrarAcesso(evento, extra){
+  var u = state.usuarioLogado; if(!u) return;
+  extra = extra || {};
+  try{
+    sbClient.from('auditoria_acessos').insert({
+      usuario: u.usuario || null, usuario_nome: u.nome || null, evento: evento,
+      ambiente: extra.ambiente || (state.ambiente ? state.ambiente.codigo + ' - ' + state.ambiente.nome : null),
+      rotina: extra.rotina || null, navegador: String(navigator.userAgent || '').slice(0, 300)
+    }).then(function(r){ if(r && r.error) console.warn('Auditoria (acesso):', r.error.message); }, function(){});
+  }catch(e){}
+}
+function auditNome(v){ try{ return decodeURIComponent(v || ''); }catch(e){ return v || ''; } }
+
+/* nomes amigáveis das tabelas */
+function auditNomeTabela(t){
+  var extras = { usuarios:'Usuários', dp_colaboradores:'Funcionários', dp_pagamentos_realizados:'Pagamentos realizados (DP)', dp_checklist_demissional:'Checklist demissional',
+    mqp_solicitacoes:'MQP', mqp_fluxos:'MQP - Configuração do Fluxo', consentimentos_lgpd:'Consentimentos LGPD', trilha_funcao_treinamentos:'Trilha - Treinamentos por Função' };
+  if(extras[t]) return extras[t];
+  var k = Object.keys(CADASTROS_SIMPLES).find(function(x){ return CADASTROS_SIMPLES[x].tabela === t; });
+  return k ? CADASTROS_SIMPLES[k].titulo + (CADASTROS_SIMPLES[k].ambiente ? ' (' + CADASTROS_SIMPLES[k].ambiente + ')' : '') : t;
+}
+function auditRotuloCampo(tabela, campo){
+  var k = Object.keys(CADASTROS_SIMPLES).find(function(x){ return CADASTROS_SIMPLES[x].tabela === tabela; });
+  var c = k && (CADASTROS_SIMPLES[k].campos || []).find(function(f){ return f.chave === campo; });
+  return c ? c.label : campo.replace(/_/g, ' ');
+}
+function auditValor(v){
+  if(v === null || v === undefined || v === '') return '<i class="aud-vazio">vazio</i>';
+  if(typeof v === 'object') return '<code>' + esc(JSON.stringify(v).slice(0, 300)) + (JSON.stringify(v).length > 300 ? '…' : '') + '</code>';
+  if(typeof v === 'boolean') return v ? 'Sim' : 'Não';
+  if(/^\d{4}-\d{2}-\d{2}$/.test(String(v))) return fmtBR(String(v));
+  return esc(String(v).slice(0, 300));
+}
+
+/* ---------- dashboard ---------- */
+var stAud = { aba:'geral', dias:7, de:'', ate:'', usuario:'', tabela:'', operacao:'', busca:'', acessos:[], alteracoes:[], carregadoEm:null };
+
+function abrirDashboardAuditoria(){
+  if(!(state.usuarioLogado && state.usuarioLogado.admin)){ toast('O Dashboard de Auditoria é exclusivo para administradores.', true); return; }
+  trilhaMostrarPainel('Relatórios e Dashboards', 'Dashboard de Auditoria');
+  $('dash-crumb').textContent = 'Departamento Pessoal > Relatórios e Dashboards';
+  auditCarregar();
+}
+function auditPeriodo(){
+  if(stAud.dias){ var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - (stAud.dias - 1)); return { de: d.toISOString(), ate: null }; }
+  return { de: stAud.de ? new Date(stAud.de + 'T00:00:00').toISOString() : null, ate: stAud.ate ? new Date(stAud.ate + 'T23:59:59').toISOString() : null };
+}
+async function auditBuscarTudo(tabela, campoData, per){
+  var todos = [], ini = 0, PAG = 1000, MAX = 10000;
+  while(ini < MAX){
+    var q = sbClient.from(tabela).select('*');
+    if(per.de) q = q.gte(campoData, per.de);
+    if(per.ate) q = q.lte(campoData, per.ate);
+    var r = await q.order(campoData, { ascending: false }).range(ini, ini + PAG - 1);
+    if(r.error) throw r.error;
+    todos = todos.concat(r.data || []);
+    if(!r.data || r.data.length < PAG) break;
+    ini += PAG;
+  }
+  return todos;
+}
+async function auditCarregar(){
+  var el = $('viz-conteudo');
+  if(!stAud.carregadoEm) el.innerHTML = '<div style="padding:40px;text-align:center;">Carregando auditoria…</div>';
+  try{
+    var per = auditPeriodo();
+    var r = await Promise.all([auditBuscarTudo('auditoria_acessos', 'data_acesso', per), auditBuscarTudo('auditoria_alteracoes', 'data_alteracao', per)]);
+    stAud.acessos = r[0]; stAud.alteracoes = r[1]; stAud.carregadoEm = new Date();
+    renderAuditoria();
+  }catch(e){
+    console.error(e);
+    el.innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Não foi possível carregar a auditoria.<br><small>' + esc(dpFormatarErroSupabase('Supabase', e))
+      + '</small><br><small>Confira se o SQL da auditoria (auditoria_supabase.sql) foi rodado no Supabase.</small></div>';
+  }
+}
+function auditFiltro(k, v){
+  stAud[k] = (k === 'dias') ? parseInt(v, 10) || 0 : v;
+  if(k === 'dias' || k === 'de' || k === 'ate'){ stAud.carregadoEm = null; auditCarregar(); }
+  else renderAuditoria(k === 'busca');
+}
+function auditAba(a){ stAud.aba = a; renderAuditoria(); }
+
+function auditFiltrados(){
+  var q = normalizeHeader(stAud.busca);
+  var alt = stAud.alteracoes.filter(function(a){
+    if(stAud.usuario && a.usuario !== stAud.usuario) return false;
+    if(stAud.tabela && a.tabela !== stAud.tabela) return false;
+    if(stAud.operacao && a.operacao !== stAud.operacao) return false;
+    if(q && normalizeHeader([a.usuario, auditNome(a.usuario_nome), auditNomeTabela(a.tabela), a.registro_id, JSON.stringify(a.dados_antes || ''), JSON.stringify(a.dados_depois || '')].join(' ')).indexOf(q) < 0) return false;
+    return true;
+  });
+  var ace = stAud.acessos.filter(function(a){
+    if(stAud.usuario && a.usuario !== stAud.usuario) return false;
+    if(q && normalizeHeader([a.usuario, a.usuario_nome, a.evento, a.ambiente, a.rotina].join(' ')).indexOf(q) < 0) return false;
+    return true;
+  });
+  return { alt: alt, ace: ace };
+}
+var AUD_OPS = { INSERT:{ t:'Inclusão', c:'ins' }, UPDATE:{ t:'Alteração', c:'upd' }, DELETE:{ t:'Exclusão', c:'del' } };
+var AUD_EVENTOS = { login:'Entrou no portal', logout:'Saiu do portal', sessao_retomada:'Retomou a sessão', rotina:'Abriu rotina' };
+
+function renderAuditoria(manterFoco){
+  var el = $('viz-conteudo'), f = auditFiltrados();
+  var usuarios = {}; stAud.acessos.concat(stAud.alteracoes).forEach(function(a){ if(a.usuario) usuarios[a.usuario] = auditNome(a.usuario_nome) || a.usuario; });
+  var tabelas = {}; stAud.alteracoes.forEach(function(a){ tabelas[a.tabela] = true; });
+  var sel = function(k, rotulo, opcoes){ return '<select class="mesnav-select" onchange="auditFiltro(\'' + k + '\', this.value)"><option value="">' + rotulo + '</option>' + opcoes.map(function(o){ return '<option value="' + esc(o[0]) + '"' + (stAud[k] === o[0] ? ' selected' : '') + '>' + esc(o[1]) + '</option>'; }).join('') + '</select>'; };
+  var filtros = '<div class="aud-filtros">'
+    + '<select class="mesnav-select" onchange="auditFiltro(\'dias\', this.value)">' + [[1,'Hoje'],[7,'Últimos 7 dias'],[30,'Últimos 30 dias'],[90,'Últimos 90 dias'],[0,'Período…']].map(function(o){ return '<option value="' + o[0] + '"' + (stAud.dias === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'
+    + (stAud.dias === 0 ? '<input type="date" class="filtro-data" value="' + esc(stAud.de) + '" onchange="auditFiltro(\'de\', this.value)"><span>até</span><input type="date" class="filtro-data" value="' + esc(stAud.ate) + '" onchange="auditFiltro(\'ate\', this.value)">' : '')
+    + sel('usuario', 'Todos os usuários', Object.keys(usuarios).sort(function(a,b){ return usuarios[a].localeCompare(usuarios[b], 'pt-BR'); }).map(function(k){ return [k, usuarios[k] + (usuarios[k] !== k ? ' (' + k + ')' : '')]; }))
+    + (stAud.aba !== 'acessos' ? sel('tabela', 'Todas as telas/tabelas', Object.keys(tabelas).sort().map(function(t){ return [t, auditNomeTabela(t)]; })) + sel('operacao', 'Todas as operações', [['INSERT','Inclusão'],['UPDATE','Alteração'],['DELETE','Exclusão']]) : '')
+    + '<input type="text" id="aud-busca" class="filtro-data" style="min-width:200px;" placeholder="Buscar (nome, registro, valor…)" value="' + esc(stAud.busca) + '" oninput="auditFiltro(\'busca\', this.value)">'
+    + '<span style="flex:1"></span><button class="btn" onclick="stAud.carregadoEm=null;auditCarregar()">↻ Atualizar</button>'
+    + '<button class="btn" onclick="auditExportar()">⬇ Exportar CSV</button></div>';
+  var abas = '<div class="mqp-chips">' + [['geral','Visão geral'],['alteracoes','Alterações (' + f.alt.length + ')'],['acessos','Acessos (' + f.ace.length + ')']].map(function(a){
+    return '<button class="mqp-chip' + (stAud.aba === a[0] ? ' on' : '') + '" onclick="auditAba(\'' + a[0] + '\')">' + a[1] + '</button>'; }).join('') + '</div>';
+  var corpo = stAud.aba === 'geral' ? auditHtmlGeral(f) : (stAud.aba === 'alteracoes' ? auditHtmlAlteracoes(f.alt) : auditHtmlAcessos(f.ace));
+  el.innerHTML = filtros + abas + corpo + '<div class="aud-rodape">Atualizado às ' + (stAud.carregadoEm ? stAud.carregadoEm.toLocaleTimeString('pt-BR') : '-') + '. Os registros de auditoria não podem ser alterados nem apagados pelo portal.</div>';
+  if(manterFoco){ var i = $('aud-busca'); if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+}
+
+function auditHtmlGeral(f){
+  var nUsu = {}; f.ace.concat(f.alt).forEach(function(a){ if(a.usuario && a.usuario !== 'sistema') nUsu[a.usuario] = 1; });
+  var logins = f.ace.filter(function(a){ return a.evento === 'login' || a.evento === 'sessao_retomada'; });
+  var exc = f.alt.filter(function(a){ return a.operacao === 'DELETE'; });
+  var kpis = vizKpiRow([
+    { label:'Acessos ao portal', value: fmtNum(logins.length), sub: f.ace.length + ' evento(s) no total' },
+    { label:'Usuários ativos', value: fmtNum(Object.keys(nUsu).length) },
+    { label:'Alterações de dados', value: fmtNum(f.alt.length), sub: f.alt.filter(function(a){ return a.operacao === 'INSERT'; }).length + ' inclusões | ' + f.alt.filter(function(a){ return a.operacao === 'UPDATE'; }).length + ' alterações' },
+    { label:'Exclusões', value: fmtNum(exc.length), subClass: exc.length ? 'neg' : '' }
+  ]);
+  /* por dia */
+  var dias = {};
+  f.alt.forEach(function(a){ var d = String(a.data_alteracao).slice(0, 10); dias[d] = (dias[d] || 0) + 1; });
+  var porDia = Object.keys(dias).sort().slice(-31).map(function(d){ return { label: fmtBR(d).slice(0, 5), valor: dias[d] }; });
+  var contar = function(lista, fn){ var acc = {}; lista.forEach(function(a){ var k = fn(a); if(k) acc[k] = (acc[k] || 0) + 1; }); return Object.keys(acc).map(function(k){ return { label:k, valor:acc[k] }; }).sort(function(a,b){ return b.valor - a.valor; }).slice(0, 10); };
+  var porUsu = contar(f.alt, function(a){ return auditNome(a.usuario_nome) || a.usuario; });
+  var porTab = contar(f.alt, function(a){ return auditNomeTabela(a.tabela); });
+  var ultLogins = logins.slice(0, 12).map(function(a){ return '<tr><td>' + new Date(a.data_acesso).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'short' }) + '</td><td>' + esc(a.usuario_nome || a.usuario) + '</td><td>' + esc(AUD_EVENTOS[a.evento] || a.evento) + '</td></tr>'; }).join('');
+  var vazio = '<div class="vz-empty">Sem registros no período.</div>';
+  return kpis
+    + '<div class="viz-grid full">' + trilhaCard('Alterações por dia', 'No período escolhido', porDia.length ? trilhaBarras(porDia, '') : vazio) + '</div>'
+    + '<div class="viz-grid" style="margin-top:16px;">' + trilhaCard('Quem mais alterou dados', 'Top 10 usuários', porUsu.length ? trilhaBarras(porUsu, '') : vazio)
+      + trilhaCard('Telas/tabelas mais alteradas', 'Top 10', porTab.length ? trilhaBarras(porTab, '') : vazio) + '</div>'
+    + '<div class="viz-grid full" style="margin-top:16px;">' + trilhaCard('Últimos acessos ao portal', '', ultLogins ? '<div style="overflow-x:auto;"><table class="vz-table"><thead><tr><th>Data/hora</th><th>Usuário</th><th>Evento</th></tr></thead><tbody>' + ultLogins + '</tbody></table></div>' : vazio) + '</div>';
+}
+
+function auditHtmlAlteracoes(lista){
+  var LIM = 500, vis = lista.slice(0, LIM);
+  if(!vis.length) return '<div class="vz-empty" style="padding:40px;">Nenhuma alteração no período e filtros escolhidos.</div>';
+  return '<div class="viz-card"><div class="vz-body" style="overflow-x:auto;"><table class="vz-table aud-tab"><thead><tr><th>Data/hora</th><th>Usuário</th><th>Tela / tabela</th><th>Operação</th><th>Registro</th><th>O que mudou</th></tr></thead><tbody>'
+    + vis.map(function(a){
+        var op = AUD_OPS[a.operacao] || { t:a.operacao, c:'' };
+        var resumo = a.operacao === 'UPDATE' ? (a.campos_alterados || []).map(function(c){ return auditRotuloCampo(a.tabela, c); }).join(', ') : (a.operacao === 'INSERT' ? 'novo registro' : 'registro excluído');
+        var ref = auditReferencia(a);
+        return '<tr onclick="auditDetalhe(' + a.id + ')"><td style="white-space:nowrap;">' + new Date(a.data_alteracao).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'medium' }) + '</td>'
+          + '<td>' + esc(auditNome(a.usuario_nome) || a.usuario || '-') + (a.usuario === 'sistema' ? ' <small class="aud-vazio">(automático/portal do colaborador)</small>' : '') + '</td>'
+          + '<td>' + esc(auditNomeTabela(a.tabela)) + '</td><td><span class="aud-op ' + op.c + '">' + op.t + '</span></td>'
+          + '<td>' + esc(ref) + '</td><td class="aud-resumo">' + esc(resumo) + '</td></tr>';
+      }).join('') + '</tbody></table>'
+    + (lista.length > LIM ? '<div class="vz-empty" style="padding:10px;">Mostrando ' + LIM + ' de ' + lista.length + '. Use os filtros ou exporte o CSV para ver todos.</div>' : '')
+    + '</div></div><div id="aud-detalhe"></div>';
+}
+function auditReferencia(a){
+  var d = a.dados_depois && Object.keys(a.dados_depois).length ? a.dados_depois : (a.dados_antes || {});
+  var nome = d.nome || d.numero || d.objeto || d.fornecedor || d.usuario || d.treinamento || d.descricao || '';
+  return (nome ? nome + ' ' : '') + (a.registro_id ? '#' + a.registro_id : '');
+}
+function auditDetalhe(id){
+  var a = stAud.alteracoes.find(function(x){ return x.id === id; }); if(!a) return;
+  var op = AUD_OPS[a.operacao] || { t:a.operacao };
+  var linhas;
+  if(a.operacao === 'UPDATE'){
+    linhas = (a.campos_alterados || []).map(function(c){
+      return '<tr><td><b>' + esc(auditRotuloCampo(a.tabela, c)) + '</b></td><td class="aud-antes">' + auditValor((a.dados_antes || {})[c]) + '</td><td class="aud-seta">→</td><td class="aud-depois">' + auditValor((a.dados_depois || {})[c]) + '</td></tr>';
+    }).join('');
+    linhas = '<table class="vz-table"><thead><tr><th>Campo</th><th>Antes</th><th></th><th>Depois</th></tr></thead><tbody>' + linhas + '</tbody></table>';
+  } else {
+    var d = a.operacao === 'INSERT' ? a.dados_depois : a.dados_antes;
+    linhas = '<table class="vz-table"><thead><tr><th>Campo</th><th>' + (a.operacao === 'INSERT' ? 'Valor incluído' : 'Valor que foi excluído') + '</th></tr></thead><tbody>'
+      + Object.keys(d || {}).filter(function(k){ return !/^(created_at|id)$/.test(k); }).map(function(k){ return '<tr><td><b>' + esc(auditRotuloCampo(a.tabela, k)) + '</b></td><td class="' + (a.operacao === 'INSERT' ? 'aud-depois' : 'aud-antes') + '">' + auditValor(d[k]) + '</td></tr>'; }).join('')
+      + '</tbody></table>';
+  }
+  var box = $('aud-detalhe'); if(!box) return;
+  box.innerHTML = '<div class="viz-card" style="margin-top:16px;"><div class="viz-card-head"><div><h3>' + esc(op.t) + ' em ' + esc(auditNomeTabela(a.tabela)) + '</h3>'
+    + '<div class="cap">' + esc(auditNome(a.usuario_nome) || a.usuario) + ' | ' + new Date(a.data_alteracao).toLocaleString('pt-BR') + ' | registro ' + esc(auditReferencia(a)) + '</div></div>'
+    + '<a style="cursor:pointer;" onclick="document.getElementById(\'aud-detalhe\').innerHTML=\'\'">Fechar ✕</a></div><div class="vz-body" style="overflow-x:auto;">' + linhas + '</div></div>';
+  if(box.scrollIntoView) box.scrollIntoView({ behavior:'smooth', block:'nearest' });
+}
+function auditHtmlAcessos(lista){
+  var LIM = 500, vis = lista.slice(0, LIM);
+  if(!vis.length) return '<div class="vz-empty" style="padding:40px;">Nenhum acesso no período e filtros escolhidos.</div>';
+  return '<div class="viz-card"><div class="vz-body" style="overflow-x:auto;"><table class="vz-table"><thead><tr><th>Data/hora</th><th>Usuário</th><th>Evento</th><th>Ambiente</th><th>Rotina</th></tr></thead><tbody>'
+    + vis.map(function(a){
+        return '<tr><td style="white-space:nowrap;">' + new Date(a.data_acesso).toLocaleString('pt-BR', { dateStyle:'short', timeStyle:'medium' }) + '</td><td>' + esc(a.usuario_nome || a.usuario || '-') + '</td>'
+          + '<td>' + esc(AUD_EVENTOS[a.evento] || a.evento || '-') + '</td><td>' + esc(a.ambiente || '-') + '</td><td>' + esc(a.rotina ? a.rotina.replace('::', ' > ') : '-') + '</td></tr>';
+      }).join('') + '</tbody></table>'
+    + (lista.length > LIM ? '<div class="vz-empty" style="padding:10px;">Mostrando ' + LIM + ' de ' + lista.length + '. Exporte o CSV para ver todos.</div>' : '')
+    + '</div></div>';
+}
+function auditExportar(){
+  var f = auditFiltrados(), linhas, nome;
+  var csv = function(v){ v = v === null || v === undefined ? '' : String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  if(stAud.aba === 'acessos'){
+    linhas = [['Data/hora','Usuário','Nome','Evento','Ambiente','Rotina']].concat(f.ace.map(function(a){ return [new Date(a.data_acesso).toLocaleString('pt-BR'), a.usuario, a.usuario_nome, AUD_EVENTOS[a.evento] || a.evento, a.ambiente, a.rotina]; }));
+    nome = 'auditoria_acessos';
+  } else {
+    linhas = [['Data/hora','Usuário','Nome','Tela/tabela','Operação','Registro','Campos alterados','Antes','Depois']].concat(f.alt.map(function(a){
+      return [new Date(a.data_alteracao).toLocaleString('pt-BR'), a.usuario, auditNome(a.usuario_nome), auditNomeTabela(a.tabela), (AUD_OPS[a.operacao] || {}).t || a.operacao, auditReferencia(a),
+              (a.campos_alterados || []).join(', '), JSON.stringify(a.dados_antes || ''), JSON.stringify(a.dados_depois || '')]; }));
+    nome = 'auditoria_alteracoes';
+  }
+  var blob = new Blob(['\ufeff' + linhas.map(function(l){ return l.map(csv).join(';'); }).join('\r\n')], { type:'text/csv;charset=utf-8' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = nome + '_' + hoje() + '.csv';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+
+/* =====================================================================
+   RECEPÇÃO - HISTÓRICO DE COMPARECIMENTO
+   Cada toque no sino (Atendimentos Agendados) grava uma linha em
+   rec_atendimentos_notificacoes. Esta rotina lista essas linhas, da mais
+   recente para a mais antiga: data, horário em que o colaborador
+   compareceu (hora do chamado), nome, matrícula, quem atendeu, horário
+   agendado e quem fez o chamado.
+   ===================================================================== */
+var stRecHist = { dias: 1, de: '', ate: '', busca: '', atendente: '', dados: [], carregadoEm: null };
+function abrirRecHistorico(){
+  trilhaMostrarPainel('Atendimentos', 'Histórico de Comparecimento');
+  $('dash-crumb').textContent = 'Recepção > Atendimentos';
+  recHistCarregar();
+}
+function recHistPeriodo(){
+  if(stRecHist.dias){ var d = new Date(); d.setHours(0,0,0,0); d.setDate(d.getDate() - (stRecHist.dias - 1)); return { de: d.toISOString(), ate: null }; }
+  return { de: stRecHist.de ? new Date(stRecHist.de + 'T00:00:00').toISOString() : null, ate: stRecHist.ate ? new Date(stRecHist.ate + 'T23:59:59').toISOString() : null };
+}
+async function recHistCarregar(){
+  var el = $('viz-conteudo');
+  if(!stRecHist.carregadoEm) el.innerHTML = '<div style="padding:40px;text-align:center;">Carregando histórico…</div>';
+  try{
+    var per = recHistPeriodo(), todos = [], ini = 0;
+    while(ini < 20000){
+      var q = sbClient.from('rec_atendimentos_notificacoes').select('*');
+      if(per.de) q = q.gte('data_notificacao', per.de);
+      if(per.ate) q = q.lte('data_notificacao', per.ate);
+      var r = await q.order('data_notificacao', { ascending: false }).range(ini, ini + 999);
+      if(r.error) throw r.error;
+      todos = todos.concat(r.data || []);
+      if(!r.data || r.data.length < 1000) break;
+      ini += 1000;
+    }
+    stRecHist.dados = todos; stRecHist.carregadoEm = new Date();
+    renderRecHistorico();
+  }catch(e){
+    console.error(e);
+    el.innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Não foi possível carregar o histórico.<br><small style="color:#a32a1f;">' + esc(dpFormatarErroSupabase('Motivo', e))
+      + '</small><br><small>Confira se o SQL do Histórico de Comparecimento foi rodado no Supabase.</small></div>';
+  }
+}
+function recHistFiltro(k, v){
+  stRecHist[k] = k === 'dias' ? (parseInt(v, 10) || 0) : v;
+  if(k === 'dias' || k === 'de' || k === 'ate'){ stRecHist.carregadoEm = null; recHistCarregar(); }
+  else renderRecHistorico(k === 'busca');
+}
+function recHistFiltrados(){
+  var q = normalizeHeader(stRecHist.busca);
+  return stRecHist.dados.filter(function(h){
+    if(stRecHist.atendente && (h.atendente || '') !== stRecHist.atendente) return false;
+    if(q && normalizeHeader([h.colaborador, h.matricula, h.atendente].join(' ')).indexOf(q) < 0) return false;
+    return true;
+  });
+}
+function renderRecHistorico(manterFoco){
+  var el = $('viz-conteudo'), lista = recHistFiltrados();
+  var atendentes = {}; stRecHist.dados.forEach(function(h){ if(h.atendente) atendentes[h.atendente] = 1; });
+  var hojeStr = new Date().toDateString();
+  var deHoje = lista.filter(function(h){ return new Date(h.data_notificacao).toDateString() === hojeStr; }).length;
+  var pessoas = {}; lista.forEach(function(h){ pessoas[h.matricula || normalizeHeader(h.colaborador)] = 1; });
+  var filtros = '<div class="aud-filtros">'
+    + '<select class="mesnav-select" onchange="recHistFiltro(\'dias\', this.value)">' + [[1,'Hoje'],[7,'Últimos 7 dias'],[30,'Últimos 30 dias'],[90,'Últimos 90 dias'],[0,'Período…']].map(function(o){ return '<option value="' + o[0] + '"' + (stRecHist.dias === o[0] ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('') + '</select>'
+    + (stRecHist.dias === 0 ? '<input type="date" class="filtro-data" value="' + esc(stRecHist.de) + '" onchange="recHistFiltro(\'de\', this.value)"><span>até</span><input type="date" class="filtro-data" value="' + esc(stRecHist.ate) + '" onchange="recHistFiltro(\'ate\', this.value)">' : '')
+    + '<select class="mesnav-select" onchange="recHistFiltro(\'atendente\', this.value)"><option value="">Todos os atendentes</option>'
+      + Object.keys(atendentes).sort(function(a,b){ return a.localeCompare(b, 'pt-BR'); }).map(function(a){ return '<option' + (stRecHist.atendente === a ? ' selected' : '') + '>' + esc(a) + '</option>'; }).join('') + '</select>'
+    + '<input type="text" id="rec-hist-busca" class="filtro-data" style="min-width:220px;" placeholder="Buscar nome ou matrícula" value="' + esc(stRecHist.busca) + '" oninput="recHistFiltro(\'busca\', this.value)">'
+    + '<span style="flex:1"></span><button class="btn" onclick="stRecHist.carregadoEm=null;recHistCarregar()">↻ Atualizar</button><button class="btn" onclick="recHistExportar()">⬇ Exportar CSV</button></div>';
+  var kpis = vizKpiRow([
+    { label:'Comparecimentos no período', value: fmtNum(lista.length) },
+    { label:'Hoje', value: fmtNum(deHoje) },
+    { label:'Pessoas diferentes', value: fmtNum(Object.keys(pessoas).length) }
+  ]);
+  var corpo;
+  if(!lista.length) corpo = '<div class="vz-empty" style="padding:40px;">Nenhum comparecimento registrado no período. Os registros aparecem aqui sempre que alguém toca no 🔔 em <a onclick="acionarRotina(\'Atendimentos::Atendimentos Agendados\')">Atendimentos Agendados</a>.</div>';
+  else {
+    /* agrupado por dia, um embaixo do outro */
+    var grupos = [], atual = null;
+    lista.forEach(function(h){
+      var d = new Date(h.data_notificacao), chave = d.toDateString();
+      if(!atual || atual.chave !== chave){ atual = { chave: chave, data: d, itens: [] }; grupos.push(atual); }
+      atual.itens.push(h);
+    });
+    var diaSemana = ['domingo','segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado'];
+    corpo = grupos.map(function(g){
+      var titulo = (g.chave === hojeStr ? 'Hoje, ' : '') + g.data.toLocaleDateString('pt-BR') + ' (' + diaSemana[g.data.getDay()] + ')';
+      return '<div class="rec-hist-dia"><div class="rec-hist-dia-tit"><span>' + esc(titulo) + '</span><b>' + g.itens.length + ' comparecimento(s)</b></div>'
+        + '<div style="overflow-x:auto;"><table class="vz-table"><thead><tr><th>Compareceu às</th><th>Colaborador</th><th>Matrícula</th><th>Atendente</th><th>Horário agendado</th><th>Chamado por</th></tr></thead><tbody>'
+        + g.itens.map(function(h){
+            var d = new Date(h.data_notificacao);
+            return '<tr><td><span class="rec-hist-hora">' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) + '</span><small>' + d.toLocaleDateString('pt-BR') + '</small></td>'
+              + '<td><b>' + esc(h.colaborador || '-') + '</b></td><td>' + esc(h.matricula || '-') + '</td><td>' + esc(h.atendente || '-') + '</td>'
+              + '<td>' + esc(h.hora_agendamento || '-') + (h.data_agendamento ? ' <small>(' + fmtBR(h.data_agendamento) + ')</small>' : '') + '</td>'
+              + '<td>' + esc(h.enviado_por_nome || h.enviado_por || '-') + '</td></tr>';
+          }).join('') + '</tbody></table></div></div>';
+    }).join('');
+  }
+  el.innerHTML = filtros + kpis + '<div class="viz-card"><div class="vz-body">' + corpo + '</div></div>'
+    + '<div class="aud-rodape">Atualizado às ' + (stRecHist.carregadoEm ? stRecHist.carregadoEm.toLocaleTimeString('pt-BR') : '-') + '. Cada toque no 🔔 gera um registro.</div>';
+  if(manterFoco){ var i = $('rec-hist-busca'); if(i){ i.focus(); i.setSelectionRange(i.value.length, i.value.length); } }
+}
+function recHistExportar(){
+  var lista = recHistFiltrados();
+  var csv = function(v){ v = v === null || v === undefined ? '' : String(v); return /[;"\n]/.test(v) ? '"' + v.replace(/"/g, '""') + '"' : v; };
+  var linhas = [['Data','Compareceu às','Colaborador','Matrícula','Atendente','Horário agendado','Data do agendamento','Chamado por']].concat(lista.map(function(h){
+    var d = new Date(h.data_notificacao);
+    return [d.toLocaleDateString('pt-BR'), d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }), h.colaborador, h.matricula, h.atendente, h.hora_agendamento, h.data_agendamento ? fmtBR(h.data_agendamento) : '', h.enviado_por_nome || h.enviado_por];
+  }));
+  var blob = new Blob(['\ufeff' + linhas.map(function(l){ return l.map(csv).join(';'); }).join('\r\n')], { type:'text/csv;charset=utf-8' });
+  var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'historico_comparecimento_' + hoje() + '.csv';
+  document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
 }
 
 /* =====================================================================
@@ -15321,7 +15867,7 @@ function renderDashboardAtendimentos(){
         + '<th>Data</th><th>Hora</th><th>Colaborador</th><th>Matrícula</th><th>Quem Atenderá</th><th>Status</th><th>Observação</th></tr></thead><tbody>';
       proximosAgend.forEach(function(a){
         var statusBg = statusAtendimentoBgColor(a.status);
-        var sino = '<button class="btn-sino-notif" data-agend-id="'+esc(a.id||'')+'" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;margin-left:4px;" title="Notificar chegada do cliente">🔔</button>';
+        var sino = '<button class="btn-sino-notif" data-agend-id="'+esc(a.id||'')+'" data-matricula="'+esc(a.matricula||'')+'" data-data-agend="'+esc(a.data_agendamento||'')+'" style="background:none;border:none;cursor:pointer;font-size:16px;padding:2px 6px;margin-left:4px;" title="Notificar chegada do cliente">🔔</button>';
         agendHtml += '<tr data-atendente="'+esc(a.quem_atenderá||'')+'">'
           + '<td><strong>'+fmtDiaMes(parseDateISO(a.data_agendamento))+'</strong></td>'
           + '<td>'+esc(a.horario_comparecimento||'-')+'</td>'
@@ -15408,7 +15954,9 @@ function renderDashboardAtendimentos(){
               colaborador: colaborador,
               hora: hora,
               atendente: atendente,
-              status: status
+              status: status,
+              matricula: this.getAttribute('data-matricula') || '',
+              data_agendamento: this.getAttribute('data-data-agend') || ''
             });
           }
         }
@@ -15571,12 +16119,22 @@ function enviarNotificacaoChegada(dados){
       hora_agendamento: dados.hora,
       status_agendamento: dados.status,
       enviado_por: usuarioEmail,
-      data_notificacao: dataNotif
+      data_notificacao: dataNotif,
+      /* dados do Histórico de Comparecimento */
+      agendamento_id: dados.id ? String(dados.id) : null,
+      matricula: dados.matricula || null,
+      data_agendamento: dados.data_agendamento || null,
+      enviado_por_nome: state.usuarioLogado ? (state.usuarioLogado.nome || null) : null
     };
 
-    // Tentar salvar na tabela de notificações
+    // Tentar salvar na tabela de notificações (é também o Histórico de Comparecimento)
     sbClient.from('rec_atendimentos_notificacoes').insert([notificacao])
       .then(function(result){
+        if(result && result.error){
+          console.warn('Chamado não registrado no histórico:', result.error);
+          toast(dpFormatarErroSupabase('O aviso foi mostrado, mas o chamado NÃO foi gravado no Histórico de Comparecimento', result.error), true, 9000);
+          return;
+        }
         console.log('✓ Notificação enviada com sucesso para TODOS os usuários:', result);
       })
       .catch(function(err){
@@ -16196,167 +16754,6 @@ document.addEventListener('click', function(e) {
     </div>
   </div>
 </div>
-
-<!-- ===================================
-     DASHBOARD DE AUDITORIA - ADMIN ONLY
-     =================================== -->
-<script>
-// Função para abrir dashboard
-function abrirDashboardAuditoria() {
-  const userLogado = localStorage.getItem('portal_usuario_logado');
-  if (!userLogado) {
-    alert('Você precisa estar logado!');
-    return;
-  }
-
-  const user = JSON.parse(userLogado);
-  
-  // Verificar se é admin (campo já vem do login)
-  const isAdmin = user.admin === true || user.admin === 'true';
-  
-  if (!isAdmin) {
-    alert('❌ Acesso negado! Só administrador pode acessar auditoria.');
-    return;
-  }
-
-  // Mostrar a view de dashboard igual às outras
-  $('view-home').style.display='none'; 
-  $('view-funcionarios').style.display='none'; 
-  $('view-rescisao').style.display='none'; 
-  $('view-ferias').style.display='none'; 
-  $('view-importacao').style.display='none'; 
-  $('view-importacao-processos').style.display='none'; 
-  $('view-importacao-processos-arquivados').style.display='none'; 
-  $('view-importacao-medidas').style.display='none'; 
-  $('view-importacao-pagamentos').style.display='none'; 
-  $('view-solicpag').style.display='none'; 
-  $('view-cad-simples').style.display='none';
-  $('view-dashboard').style.display='flex';
-  
-  // Mostrar conteúdo de auditoria na view-dashboard
-  mudarAbaDashboardAuditoria('acessos');
-}
-
-// Funções removidas - agora usa a view-dashboard padrão
-
-function mudarAbaDashboardAuditoria(aba) {
-  // Reuse a view-dashboard mas com conteúdo de auditoria
-  const conteudo = document.getElementById('viz-conteudo');
-  if (!conteudo) return;
-  
-  let html = '';
-  if (aba === 'acessos') {
-    html = `<div style="padding: 20px;"><h2>📊 Acessos Recentes</h2><table class="audit-table" style="width:100%;"><thead><tr><th>Usuário</th><th>Tabela</th><th>Operação</th><th>Data/Hora</th></tr></thead><tbody id="audit-acessos-body"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div>`;
-  } else if (aba === 'alteracoes') {
-    html = `<div style="padding: 20px;"><h2>✏️ Alterações</h2><table class="audit-table" style="width:100%;"><thead><tr><th>Usuário</th><th>Tabela</th><th>Operação</th><th>Data/Hora</th></tr></thead><tbody id="audit-alteracoes-body"><tr><td colspan="4">Carregando...</td></tr></tbody></table></div>`;
-  } else if (aba === 'stats') {
-    html = `<div style="padding: 20px;"><h2>📈 Estatísticas</h2><div class="audit-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:20px;margin-top:20px;"><div class="stat-card"><div class="stat-numero" id="stat-total-acessos">-</div><div class="stat-label">Total de Acessos</div></div><div class="stat-card"><div class="stat-numero" id="stat-total-alteracoes">-</div><div class="stat-label">Total de Alterações</div></div><div class="stat-card"><div class="stat-numero" id="stat-usuarios-ativos">-</div><div class="stat-label">Usuários Ativos</div></div><div class="stat-card"><div class="stat-numero" id="stat-tabelas">-</div><div class="stat-label">Tabelas Acessadas</div></div></div></div>`;
-  }
-  
-  conteudo.innerHTML = html;
-  
-  // Carregar dados
-  if (aba === 'acessos') carregarAcessos();
-  else if (aba === 'alteracoes') carregarAlteracoes();
-  else if (aba === 'stats') carregarEstatisticas();
-}
-
-async function carregarAcessos() {
-  try {
-    const { data, error } = await supabase.from('auditoria_acessos').select('*').order('data_acesso', { ascending: false }).limit(100);
-    const body = document.getElementById('audit-acessos-body');
-    
-    if (error) {
-      console.error('Erro Supabase:', error);
-      body.innerHTML = '<tr><td colspan="4">ℹ️ Nenhum acesso registrado ainda. Os dados aparecerão conforme o sistema for utilizado.</td></tr>';
-      return;
-    }
-    
-    if (!data || data.length === 0) {
-      body.innerHTML = '<tr><td colspan="4">ℹ️ Nenhum acesso registrado ainda. Os dados aparecerão conforme o sistema for utilizado.</td></tr>';
-      return;
-    }
-    
-    body.innerHTML = data.map(item => `<tr><td>${item.usuario_email || 'Sistema'}</td><td>${item.tabela_acessada}</td><td>${item.tipo_operacao}</td><td>${new Date(item.data_acesso).toLocaleString('pt-BR')}</td></tr>`).join('');
-  } catch (error) {
-    console.error('Erro ao carregar acessos:', error);
-    document.getElementById('audit-acessos-body').innerHTML = '<tr><td colspan="4">ℹ️ Nenhum acesso registrado ainda.</td></tr>';
-  }
-}
-
-async function carregarAlteracoes() {
-  try {
-    const { data, error } = await supabase.from('auditoria_alteracoes').select('*').order('data_alteracao', { ascending: false }).limit(100);
-    const body = document.getElementById('audit-alteracoes-body');
-    
-    if (error) {
-      console.error('Erro Supabase:', error);
-      body.innerHTML = '<tr><td colspan="4">ℹ️ Nenhuma alteração registrada ainda. Os dados aparecerão conforme o sistema for utilizado.</td></tr>';
-      return;
-    }
-    
-    if (!data || data.length === 0) {
-      body.innerHTML = '<tr><td colspan="4">ℹ️ Nenhuma alteração registrada ainda. Os dados aparecerão conforme o sistema for utilizado.</td></tr>';
-      return;
-    }
-    
-    body.innerHTML = data.map(item => `<tr><td>${item.usuario_email || 'Sistema'}</td><td>${item.tabela_alterada}</td><td>${item.operacao}</td><td>${new Date(item.data_alteracao).toLocaleString('pt-BR')}</td></tr>`).join('');
-  } catch (error) {
-    console.error('Erro ao carregar alterações:', error);
-    document.getElementById('audit-alteracoes-body').innerHTML = '<tr><td colspan="4">ℹ️ Nenhuma alteração registrada ainda.</td></tr>';
-  }
-}
-
-async function carregarEstatisticas() {
-  try {
-    const { count: totalAcessos, error: errAcessos } = await supabase.from('auditoria_acessos').select('*', { count: 'exact', head: true });
-    const { count: totalAlteracoes, error: errAlteracoes } = await supabase.from('auditoria_alteracoes').select('*', { count: 'exact', head: true });
-    
-    document.getElementById('stat-total-acessos').textContent = totalAcessos || 0;
-    document.getElementById('stat-total-alteracoes').textContent = totalAlteracoes || 0;
-    
-    const { data: usuarios } = await supabase.from('auditoria_acessos').select('usuario_email').limit(1000);
-    const usuariosUnicos = new Set(usuarios?.map(u => u.usuario_email) || []).size;
-    
-    const { data: tabelas } = await supabase.from('auditoria_acessos').select('tabela_acessada').limit(1000);
-    const tabelasUnicas = new Set(tabelas?.map(t => t.tabela_acessada) || []).size;
-    
-    document.getElementById('stat-usuarios-ativos').textContent = usuariosUnicos;
-    document.getElementById('stat-tabelas').textContent = tabelasUnicas;
-  } catch (error) {
-    console.error('Erro ao carregar estatísticas:', error);
-    // Manter os valores em 0 se houver erro
-    document.getElementById('stat-total-acessos').textContent = '0';
-    document.getElementById('stat-total-alteracoes').textContent = '0';
-    document.getElementById('stat-usuarios-ativos').textContent = '0';
-    document.getElementById('stat-tabelas').textContent = '0';
-  }
-}
-
-function filtrarAcessos() {
-  const usuario = document.getElementById('filtro-usuario').value.toLowerCase();
-  const data = document.getElementById('filtro-data').value;
-  document.querySelectorAll('#audit-acessos-body tr').forEach(row => {
-    const texto = row.textContent.toLowerCase();
-    const dataRow = row.querySelector('td:nth-child(4)')?.textContent || '';
-    row.style.display = (!usuario || texto.includes(usuario)) && (!data || dataRow.includes(data)) ? '' : 'none';
-  });
-}
-
-function filtrarAlteracoes() {
-  const usuario = document.getElementById('filtro-usuario-alt').value.toLowerCase();
-  const tabela = document.getElementById('filtro-tabela').value;
-  document.querySelectorAll('#audit-alteracoes-body tr').forEach(row => {
-    const texto = row.textContent.toLowerCase();
-    const tabelaRow = row.querySelector('td:nth-child(2)')?.textContent || '';
-    row.style.display = (!usuario || texto.includes(usuario)) && (!tabela || tabelaRow === tabela) ? '' : 'none';
-  });
-}
-
-// Função removida - CSS agora é inline
-
-// Limpo - modal dinâmico removido
-</script>
 
 </body>
 </html>
