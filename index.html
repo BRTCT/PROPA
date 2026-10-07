@@ -873,6 +873,33 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .ccsm-item:hover{background:#f3f6f9;}
   .ccsm-item span{color:#6b747d;font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
   .ccsm-item.inativo{opacity:.6;}
+  /* ===== Chat da Recepção (estilo WhatsApp) ===== */
+  .chat-wrap{position:relative;display:flex;flex-direction:column;height:calc(100vh - 190px);min-height:420px;max-width:980px;margin:0 auto;border:1px solid #d9dee2;border-radius:10px;overflow:hidden;background:#efeae2;}
+  .chat-topo{display:flex;align-items:center;gap:10px;background:#075e54;color:#fff;padding:10px 14px;}
+  .chat-topo b{display:block;font-size:15px;} .chat-topo span{font-size:12px;opacity:.85;}
+  .chat-avatar{width:38px;height:38px;border-radius:50%;background:rgba(255,255,255,.18);display:flex;align-items:center;justify-content:center;font-size:18px;}
+  .chat-lista{flex:1;overflow-y:auto;padding:14px 5%;background-color:#efeae2;background-image:radial-gradient(rgba(0,0,0,.035) 1px, transparent 1px);background-size:18px 18px;}
+  .chat-dia{text-align:center;margin:12px 0 8px;} .chat-dia span{display:inline-block;background:#e1f2fb;color:#4a5560;font-size:11.5px;padding:4px 10px;border-radius:8px;box-shadow:0 1px 1px rgba(0,0,0,.08);text-transform:capitalize;}
+  .chat-msg{display:flex;margin-top:8px;} .chat-msg.seguida{margin-top:2px;}
+  .chat-msg.minha{justify-content:flex-end;}
+  .chat-balao{max-width:72%;background:#fff;border-radius:8px;padding:6px 9px 4px;box-shadow:0 1px 1px rgba(0,0,0,.12);position:relative;word-wrap:break-word;overflow-wrap:anywhere;}
+  .chat-msg.minha .chat-balao{background:#d9fdd3;}
+  .chat-msg:not(.seguida):not(.minha) .chat-balao{border-top-left-radius:0;}
+  .chat-msg.minha:not(.seguida) .chat-balao{border-top-right-radius:0;}
+  .chat-nome{font-size:12.5px;font-weight:700;margin-bottom:2px;}
+  .chat-nome-eu{color:#0b6b52;text-align:right;}
+  .chat-texto{font-size:14px;line-height:1.38;color:#111b21;white-space:normal;}
+  .chat-texto a{color:#027eb5;}
+  .chat-hora{font-size:10.5px;color:#667781;text-align:right;margin-top:2px;}
+  .chat-vazio{text-align:center;color:#667781;margin-top:40px;font-size:13px;}
+  .chat-antigas{text-align:center;margin:4px 0 6px;} .chat-antigas button{border:0;background:#fff;border-radius:14px;padding:5px 12px;font-size:12px;cursor:pointer;box-shadow:0 1px 1px rgba(0,0,0,.1);font-family:inherit;}
+  .chat-compor{display:flex;align-items:flex-end;gap:8px;background:#f0f2f5;padding:8px 10px;}
+  .chat-compor textarea{flex:1;resize:none;border:0;border-radius:8px;padding:10px 12px;font-size:14px;font-family:inherit;line-height:1.35;max-height:140px;outline:none;background:#fff;}
+  .chat-enviar{width:44px;height:44px;border-radius:50%;border:0;background:#00a884;color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;}
+  .chat-enviar:hover{background:#008f72;} .chat-enviar:disabled{opacity:.6;cursor:wait;}
+  .chat-novas{position:absolute;right:22px;bottom:74px;border:0;border-radius:16px;background:#fff;color:#075e54;font-weight:700;font-size:12px;padding:7px 12px;box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer;display:none;font-family:inherit;}
+  .chat-novas.ver{display:block;}
+  @media (max-width:640px){ .chat-wrap{height:calc(100vh - 150px);} .chat-balao{max-width:85%;} .chat-lista{padding:10px 3%;} }
   /* Recepção - histórico de comparecimento */
   .rec-hist-dia{margin-bottom:18px;}
   .rec-hist-dia-tit{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #e4e7ea;padding:4px 2px 6px;margin-bottom:6px;font-size:13.5px;font-weight:700;color:#26323b;}
@@ -2729,6 +2756,11 @@ var AMBIENTES = [
         titulo: 'Atendimentos',
         sub: 'Selecione a rotina na lista abaixo',
         itens: ['Cadastro de Atendimento','Atendimentos Agendados','Histórico de Comparecimento']
+      },
+      {
+        titulo: 'Comunicação',
+        sub: 'Converse com a equipe da Recepção',
+        itens: ['Chat']
       }
     ]
   },
@@ -3379,6 +3411,7 @@ function loginEntrarComoUsuario(registro, restaurando){
 }
 
 function logOff(){
+  if(typeof chatParar === 'function') chatParar();
   if(typeof auditRegistrarAcesso === 'function' && state.usuarioLogado) auditRegistrarAcesso('logout');
   if(typeof rtParar === 'function') rtParar();
   var lgpdOv = document.getElementById('lgpd-overlay'); if(lgpdOv) lgpdOv.remove();
@@ -3516,6 +3549,7 @@ function entrarNoAmbiente(a){
   state.abaAtivaId = null;
   abaCriarHome();
   if(typeof ciAoEntrarNoAmbiente === 'function') ciAoEntrarNoAmbiente(a);
+  if(typeof chatIniciar === 'function'){ if(a && a.codigo === '05') chatIniciar(); else chatParar(); }
   /* "Trocar ambiente" some para quem só tem acesso ao MQP */
   var troca = document.querySelector('.trocar-modulo');
   if(troca) troca.style.display = (state.usuarioLogado && state.usuarioLogado.mqpExclusivo) ? 'none' : '';
@@ -3586,6 +3620,7 @@ var ROTINAS_PRONTAS = {
   'Atendimentos::Cadastro de Atendimento': 'abrirCadastroAtendimento',
   'Atendimentos::Atendimentos Agendados': 'abrirDashboardAtendimentos',
   'Atendimentos::Histórico de Comparecimento': 'abrirRecHistorico',
+  'Comunicação::Chat': 'abrirRecChat',
   'Calendário::Calendário': 'abrirCalendario',
   'Emissão de Documentos::Emissão de Documentos': 'abrirEmissaoDocumentos',
   'Cadastros da Trilha::Salas': 'abrirTrilhaSalas',
@@ -3622,6 +3657,7 @@ function acionarRotina(chave){
   }
   if(typeof rotinaVisivel === 'function' && !rotinaVisivel(chave)){ toast('Esta rotina é exclusiva para administradores.', true); return; }
   var fn = ROTINAS_PRONTAS[chave];
+  if(typeof chatSaiuDaTela === 'function' && chave !== 'Comunicação::Chat') chatSaiuDaTela();
   if(fn && typeof auditRegistrarAcesso === 'function') auditRegistrarAcesso('rotina', { rotina: chave });
   if(fn && typeof window[fn] === 'function'){
     // Salvar rotina atual em localStorage
@@ -14214,6 +14250,213 @@ function recHistExportar(){
   var blob = new Blob(['\ufeff' + linhas.map(function(l){ return l.map(csv).join(';'); }).join('\r\n')], { type:'text/csv;charset=utf-8' });
   var a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'historico_comparecimento_' + hoje() + '.csv';
   document.body.appendChild(a); a.click(); setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 500);
+}
+
+/* =====================================================================
+   RECEPÇÃO - CHAT (grupo, estilo WhatsApp)
+   - Mensagens em rec_chat_mensagens (usuário, nome, texto, data/hora).
+   - Tempo real: o portal escuta novas mensagens pelo Supabase Realtime
+     (e confere a cada 8 s como segurança). Não precisa atualizar a página.
+   - Bolinha vermelha em "Chat" com o número de mensagens não lidas
+     (de outras pessoas, depois da última vez que o chat foi aberto).
+   - Escuta enquanto o usuário estiver no ambiente da Recepção.
+   ===================================================================== */
+var CHAT_CHAVE = 'Comunicação::Chat';
+var stChat = { msgs: [], ids: {}, canal: null, ok: false, poll: null, aberto: false, maisAntigas: true, enviando: false, iniciado: false };
+var CHAT_CORES = ['#1f7a6c','#b35a1f','#5a3f8c','#2f5f93','#933246','#4f7f23','#9a7514','#0e7490','#a21caf','#be123c'];
+
+function chatEu(){ return state.usuarioLogado ? String(state.usuarioLogado.usuario || '') : ''; }
+function chatChaveLido(){ return 'chat_rec_lido_' + chatEu(); }
+function chatLidoEm(){ try{ return localStorage.getItem(chatChaveLido()) || ''; }catch(e){ return ''; } }
+function chatMarcarLido(){
+  var ult = stChat.msgs.length ? stChat.msgs[stChat.msgs.length - 1].created_at : new Date().toISOString();
+  try{ localStorage.setItem(chatChaveLido(), ult); }catch(e){}
+  chatAtualizarBadge();
+}
+function chatNaoLidas(){
+  var lido = chatLidoEm(), eu = chatEu();
+  return stChat.msgs.filter(function(m){ return m.usuario !== eu && (!lido || String(m.created_at) > lido); }).length;
+}
+function chatAtualizarBadge(){ if(typeof definirContadorRotina === 'function') definirContadorRotina(CHAT_CHAVE, stChat.aberto && chatVisivel() ? 0 : chatNaoLidas()); }
+function chatVisivel(){
+  var v = $('chat-lista'), d = $('view-dashboard');
+  return !!(v && d && getComputedStyle(d).display !== 'none' && document.visibilityState === 'visible');
+}
+function chatCor(usuario){ var h = 0, t = String(usuario || ''); for(var i = 0; i < t.length; i++) h = (h * 31 + t.charCodeAt(i)) >>> 0; return CHAT_CORES[h % CHAT_CORES.length]; }
+
+/* ---------- conexão ---------- */
+async function chatIniciar(){
+  if(stChat.iniciado) return;
+  stChat.iniciado = true;
+  stChat.msgs = []; stChat.ids = {}; stChat.maisAntigas = true;
+  await chatCarregarRecentes();
+  try{
+    if(sbClient && typeof sbClient.channel === 'function'){
+      stChat.canal = sbClient.channel('rec-chat-' + Date.now())
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'rec_chat_mensagens' }, function(p){ if(p && p.new) chatReceber([p.new]); })
+        .subscribe(function(status){ stChat.ok = status === 'SUBSCRIBED'; });
+    }
+  }catch(e){ console.warn('Chat: tempo real indisponível, usando conferência periódica', e); }
+  clearInterval(stChat.poll);
+  stChat.poll = setInterval(chatBuscarNovas, 8000);
+}
+function chatParar(){
+  try{ if(stChat.canal && sbClient.removeChannel) sbClient.removeChannel(stChat.canal); }catch(e){}
+  stChat.canal = null; stChat.ok = false; stChat.iniciado = false; stChat.aberto = false;
+  clearInterval(stChat.poll); stChat.poll = null;
+}
+async function chatCarregarRecentes(){
+  try{
+    var r = await sbClient.from('rec_chat_mensagens').select('*').order('created_at', { ascending: false }).range(0, 199);
+    if(r.error) throw r.error;
+    var lista = (r.data || []).slice().reverse();
+    stChat.maisAntigas = (r.data || []).length === 200;
+    stChat.msgs = []; stChat.ids = {};
+    chatReceber(lista, true);
+  }catch(e){
+    console.warn('Chat: não foi possível carregar', e);
+    stChat.erro = e;
+  }
+}
+async function chatBuscarNovas(){
+  if(!state.usuarioLogado) return;
+  try{
+    var ult = stChat.msgs.length ? stChat.msgs[stChat.msgs.length - 1].created_at : null;
+    var q = sbClient.from('rec_chat_mensagens').select('*');
+    if(ult) q = q.gt('created_at', ult);
+    var r = await q.order('created_at', { ascending: true }).range(0, 199);
+    if(!r.error && r.data && r.data.length) chatReceber(r.data);
+  }catch(e){}
+}
+async function chatCarregarAnteriores(){
+  if(!stChat.msgs.length) return;
+  var prim = stChat.msgs[0].created_at;
+  var r = await sbClient.from('rec_chat_mensagens').select('*').lt('created_at', prim).order('created_at', { ascending: false }).range(0, 199);
+  if(r.error){ toast(dpFormatarErroSupabase('Não foi possível carregar', r.error), true); return; }
+  var antes = (r.data || []).slice().reverse().filter(function(m){ return !stChat.ids[m.id]; });
+  antes.forEach(function(m){ stChat.ids[m.id] = true; });
+  stChat.msgs = antes.concat(stChat.msgs);
+  stChat.maisAntigas = (r.data || []).length === 200;
+  var lista = $('chat-lista'), altAntes = lista ? lista.scrollHeight : 0;
+  chatRenderMensagens();
+  if(lista) lista.scrollTop = lista.scrollHeight - altAntes;
+}
+
+/* chegada de mensagens (tempo real, conferência ou envio) */
+function chatReceber(novas, silencioso){
+  var adicionadas = [];
+  (novas || []).forEach(function(m){
+    if(!m || m.id === undefined || stChat.ids[m.id]) return;
+    stChat.ids[m.id] = true; stChat.msgs.push(m); adicionadas.push(m);
+  });
+  if(!adicionadas.length) return;
+  stChat.msgs.sort(function(a,b){ return String(a.created_at).localeCompare(String(b.created_at)) || (a.id - b.id); });
+  var aberto = !!$('chat-lista') && stChat.aberto;
+  if(aberto){
+    var lista = $('chat-lista');
+    var noFim = lista.scrollHeight - lista.scrollTop - lista.clientHeight < 80;
+    chatRenderMensagens();
+    var minhas = adicionadas.some(function(m){ return m.usuario === chatEu(); });
+    if(noFim || minhas) lista.scrollTop = lista.scrollHeight;
+    else chatMostrarNovasAbaixo();
+    if(document.visibilityState === 'visible') chatMarcarLido();
+  }
+  chatAtualizarBadge();
+  if(!silencioso){
+    var deOutros = adicionadas.filter(function(m){ return m.usuario !== chatEu(); });
+    if(deOutros.length && !(aberto && document.visibilityState === 'visible')){
+      var m = deOutros[deOutros.length - 1];
+      toast('💬 ' + (m.usuario_nome || m.usuario) + ': ' + String(m.mensagem || '').slice(0, 80));
+    }
+  }
+}
+document.addEventListener('visibilitychange', function(){
+  if(document.visibilityState === 'visible' && stChat.aberto && $('chat-lista')) chatMarcarLido();
+});
+
+/* ---------- tela ---------- */
+function abrirRecChat(){
+  trilhaMostrarPainel('Comunicação', 'Chat da Recepção');
+  $('dash-crumb').textContent = 'Recepção > Comunicação';
+  stChat.aberto = true;
+  var nomeEu = state.usuarioLogado ? (state.usuarioLogado.nome || state.usuarioLogado.usuario) : '';
+  $('viz-conteudo').innerHTML = '<div class="chat-wrap">'
+    + '<div class="chat-topo"><div class="chat-avatar">💬</div><div><b>Recepção</b><span id="chat-sub">Grupo da Recepção | você está como ' + esc(nomeEu) + '</span></div></div>'
+    + '<div class="chat-lista" id="chat-lista"></div>'
+    + '<button type="button" class="chat-novas" id="chat-novas" onclick="chatIrAoFim()">↓ Novas mensagens</button>'
+    + '<div class="chat-compor"><textarea id="chat-texto" rows="1" maxlength="2000" placeholder="Digite uma mensagem" onkeydown="chatTecla(event)" oninput="chatAutoAltura(this)"></textarea>'
+    + '<button type="button" class="chat-enviar" id="chat-enviar" onclick="chatEnviar()" aria-label="Enviar" title="Enviar (Enter)"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></div>'
+    + '</div>';
+  var iniciar = stChat.iniciado ? Promise.resolve() : chatIniciar();
+  iniciar.then(function(){
+    if(stChat.erro && !stChat.msgs.length){
+      $('chat-lista').innerHTML = '<div class="vz-empty" style="padding:40px;">Não foi possível carregar o chat.<br><small style="color:#a32a1f;">' + esc(dpFormatarErroSupabase('Motivo', stChat.erro)) + '</small><br><small>Confira se o SQL do Chat da Recepção foi rodado no Supabase.</small></div>';
+      return;
+    }
+    chatRenderMensagens();
+    var l = $('chat-lista'); if(l) l.scrollTop = l.scrollHeight;
+    chatMarcarLido();
+  });
+  setTimeout(function(){ var t = $('chat-texto'); if(t) t.focus(); }, 80);
+}
+function chatSaiuDaTela(){ stChat.aberto = false; chatAtualizarBadge(); }
+function chatDiaRotulo(d){
+  var hoje0 = new Date(); hoje0.setHours(0,0,0,0);
+  var d0 = new Date(d); d0.setHours(0,0,0,0);
+  var dif = Math.round((hoje0 - d0) / 86400000);
+  if(dif === 0) return 'Hoje'; if(dif === 1) return 'Ontem';
+  return d.toLocaleDateString('pt-BR', { weekday:'long', day:'2-digit', month:'2-digit', year:'numeric' });
+}
+function chatTextoHtml(t){
+  return esc(String(t || '')).replace(/(https?:\/\/[^\s<]+)/g, '<a href="$1" target="_blank" rel="noopener">$1</a>').replace(/\n/g, '<br>');
+}
+function chatRenderMensagens(){
+  var el = $('chat-lista'); if(!el) return;
+  var eu = chatEu(), h = '', diaAnt = '', autorAnt = '', tempoAnt = 0;
+  if(stChat.maisAntigas && stChat.msgs.length) h += '<div class="chat-antigas"><button type="button" onclick="chatCarregarAnteriores()">Carregar mensagens anteriores</button></div>';
+  if(!stChat.msgs.length) h += '<div class="chat-vazio">Nenhuma mensagem ainda. Envie a primeira! 👋</div>';
+  stChat.msgs.forEach(function(m){
+    var d = new Date(m.created_at), dia = d.toDateString();
+    if(dia !== diaAnt){ h += '<div class="chat-dia"><span>' + esc(chatDiaRotulo(d)) + '</span></div>'; diaAnt = dia; autorAnt = ''; }
+    var minha = m.usuario === eu;
+    /* mesma pessoa em sequência (até 5 min): agrupa sem repetir o nome */
+    var seguida = autorAnt === m.usuario && (d - tempoAnt) < 300000;
+    h += '<div class="chat-msg' + (minha ? ' minha' : '') + (seguida ? ' seguida' : '') + '">'
+      + '<div class="chat-balao">'
+        + (!minha && !seguida ? '<div class="chat-nome" style="color:' + chatCor(m.usuario) + ';">' + esc(m.usuario_nome || m.usuario) + '</div>' : '')
+        + (minha && !seguida ? '<div class="chat-nome chat-nome-eu">' + esc(m.usuario_nome || m.usuario) + '</div>' : '')
+        + '<div class="chat-texto">' + chatTextoHtml(m.mensagem) + '</div>'
+        + '<div class="chat-hora">' + d.toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) + (m._pendente ? ' 🕓' : (minha ? ' ✓' : '')) + '</div>'
+      + '</div></div>';
+    autorAnt = m.usuario; tempoAnt = d;
+  });
+  el.innerHTML = h;
+}
+function chatMostrarNovasAbaixo(){ var b = $('chat-novas'); if(b) b.classList.add('ver'); }
+function chatIrAoFim(){ var l = $('chat-lista'); if(l) l.scrollTop = l.scrollHeight; var b = $('chat-novas'); if(b) b.classList.remove('ver'); chatMarcarLido(); }
+function chatAutoAltura(t){ t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; }
+function chatTecla(ev){ if(ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); chatEnviar(); } }
+
+async function chatEnviar(){
+  var t = $('chat-texto'); if(!t) return;
+  var texto = t.value.replace(/\s+$/, '').replace(/^\s+/, '');
+  if(!texto || stChat.enviando) return;
+  if(texto.length > 2000) texto = texto.slice(0, 2000);
+  var u = state.usuarioLogado; if(!u) return;
+  stChat.enviando = true; $('chat-enviar').disabled = true;
+  t.value = ''; chatAutoAltura(t);
+  try{
+    var r = await sbClient.from('rec_chat_mensagens').insert({ usuario: u.usuario, usuario_nome: u.nome || u.usuario, mensagem: texto }).select().single();
+    if(r.error) throw r.error;
+    chatReceber([r.data], true);
+    var l = $('chat-lista'); if(l) l.scrollTop = l.scrollHeight;
+    chatMarcarLido();
+  }catch(e){
+    t.value = texto; chatAutoAltura(t);
+    toast(dpFormatarErroSupabase('Mensagem não enviada', e), true, 9000);
+  }finally{
+    stChat.enviando = false; var b = $('chat-enviar'); if(b) b.disabled = false; t.focus();
+  }
 }
 
 /* =====================================================================
