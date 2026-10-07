@@ -899,6 +899,18 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .chat-enviar:hover{background:#008f72;} .chat-enviar:disabled{opacity:.6;cursor:wait;}
   .chat-novas{position:absolute;right:22px;bottom:74px;border:0;border-radius:16px;background:#fff;color:#075e54;font-weight:700;font-size:12px;padding:7px 12px;box-shadow:0 2px 8px rgba(0,0,0,.2);cursor:pointer;display:none;font-family:inherit;}
   .chat-novas.ver{display:block;}
+  .chat-btn-emoji{width:42px;height:42px;border:0;border-radius:50%;background:transparent;font-size:22px;cursor:pointer;flex-shrink:0;line-height:1;transition:background .15s;}
+  .chat-btn-emoji:hover,.chat-btn-emoji.on{background:#dfe5e9;}
+  .chat-emojis{position:absolute;left:10px;bottom:64px;width:min(360px, calc(100% - 20px));background:#fff;border-radius:12px;box-shadow:0 8px 28px rgba(0,0,0,.22);padding:8px;z-index:5;animation:mqpEntra .2s ease;}
+  .chat-emo-abas{display:flex;gap:2px;border-bottom:1px solid #eef0f2;padding-bottom:6px;margin-bottom:4px;}
+  .chat-emo-abas button{flex:1;border:0;background:transparent;font-size:19px;padding:5px 0;border-radius:8px;cursor:pointer;opacity:.6;}
+  .chat-emo-abas button.on{opacity:1;background:#e7f6ef;}
+  .chat-emo-titulo{font-size:11px;font-weight:700;color:#667781;text-transform:uppercase;letter-spacing:.04em;margin:4px 4px 6px;}
+  .chat-emo-grade{display:grid;grid-template-columns:repeat(8, 1fr);gap:2px;max-height:200px;overflow-y:auto;}
+  .chat-emo-grade button{border:0;background:transparent;font-size:22px;padding:4px 0;border-radius:6px;cursor:pointer;line-height:1.2;}
+  .chat-emo-grade button:hover{background:#f0f2f5;transform:scale(1.15);}
+  .rot-badge-secao{margin-left:6px;}
+  .tree-parent:not(.closed) .rot-badge-secao{display:none;}   /* aberta: a bolinha já aparece na rotina */
   @media (max-width:640px){ .chat-wrap{height:calc(100vh - 150px);} .chat-balao{max-width:85%;} .chat-lista{padding:10px 3%;} }
   /* Recepção - histórico de comparecimento */
   .rec-hist-dia{margin-bottom:18px;}
@@ -2760,6 +2772,7 @@ var AMBIENTES = [
       {
         titulo: 'Comunicação',
         sub: 'Converse com a equipe da Recepção',
+        aberta: true,   /* fica aberta no menu para a bolinha do Chat ficar sempre à vista */
         itens: ['Chat']
       }
     ]
@@ -3686,7 +3699,7 @@ function renderMenuTree(a){
   a.secoes.forEach(function(sec){
     var itens = itensVisiveis(sec);
     if(!itens.length) return;
-    html += '<div class="tree-parent closed" onclick="toggleTree(this)"><span class="caret">&#9660;</span>'+esc(sec.titulo)+' ('+itens.length+')</div>';
+    html += '<div class="tree-parent' + (sec.aberta ? '' : ' closed') + '" data-secao="' + esc(sec.titulo) + '" onclick="toggleTree(this)"><span class="caret">&#9660;</span>'+esc(sec.titulo)+' ('+itens.length+')</div>';
     html += '<div class="tree-kids">';
     itens.forEach(function(item){
       var chave = sec.titulo + '::' + item;
@@ -3726,7 +3739,18 @@ function definirContadorRotina(chave, n){
   ROTINAS_CONTADORES[chave] = n || 0;
   aplicarContadoresRotinas(n > antes ? chave : null);
 }
+function aplicarContadoresSecoes(){
+  Array.prototype.forEach.call(document.querySelectorAll('.tree-parent[data-secao]'), function(p){
+    var sec = p.getAttribute('data-secao'), total = 0;
+    Object.keys(ROTINAS_CONTADORES).forEach(function(k){ if(k.indexOf(sec + '::') === 0) total += ROTINAS_CONTADORES[k] || 0; });
+    var b = p.querySelector('.rot-badge');
+    if(!total){ if(b) b.remove(); return; }
+    if(!b){ b = document.createElement('span'); b.className = 'rot-badge rot-badge-secao'; p.appendChild(b); }
+    b.textContent = total > 99 ? '99+' : String(total);
+  });
+}
 function aplicarContadoresRotinas(chaveQueSubiu){
+  setTimeout(aplicarContadoresSecoes, 0);
   Array.prototype.forEach.call(document.querySelectorAll('[data-chave]'), function(el){
     var chave = el.getAttribute('data-chave'), n = ROTINAS_CONTADORES[chave] || 0;
     var b = el.querySelector('.rot-badge');
@@ -14384,7 +14408,8 @@ function abrirRecChat(){
     + '<div class="chat-topo"><div class="chat-avatar">💬</div><div><b>Recepção</b><span id="chat-sub">Grupo da Recepção | você está como ' + esc(nomeEu) + '</span></div></div>'
     + '<div class="chat-lista" id="chat-lista"></div>'
     + '<button type="button" class="chat-novas" id="chat-novas" onclick="chatIrAoFim()">↓ Novas mensagens</button>'
-    + '<div class="chat-compor"><textarea id="chat-texto" rows="1" maxlength="2000" placeholder="Digite uma mensagem" onkeydown="chatTecla(event)" oninput="chatAutoAltura(this)"></textarea>'
+    + '<div class="chat-emojis" id="chat-emojis" hidden></div>'
+    + '<div class="chat-compor"><button type="button" class="chat-btn-emoji" id="chat-btn-emoji" onclick="chatAlternarEmojis()" aria-label="Emojis" title="Emojis">😊</button><textarea id="chat-texto" rows="1" maxlength="2000" placeholder="Digite uma mensagem" onkeydown="chatTecla(event)" oninput="chatAutoAltura(this)"></textarea>'
     + '<button type="button" class="chat-enviar" id="chat-enviar" onclick="chatEnviar()" aria-label="Enviar" title="Enviar (Enter)"><svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor"><path d="M2.01 21 23 12 2.01 3 2 10l15 2-15 2z"/></svg></button></div>'
     + '</div>';
   var iniciar = stChat.iniciado ? Promise.resolve() : chatIniciar();
@@ -14437,6 +14462,49 @@ function chatIrAoFim(){ var l = $('chat-lista'); if(l) l.scrollTop = l.scrollHei
 function chatAutoAltura(t){ t.style.height = 'auto'; t.style.height = Math.min(t.scrollHeight, 140) + 'px'; }
 function chatTecla(ev){ if(ev.key === 'Enter' && !ev.shiftKey){ ev.preventDefault(); chatEnviar(); } }
 
+
+/* ---------- emojis do chat ---------- */
+var CHAT_EMOJIS = [
+  ['😊','Rostos', '😀 😃 😄 😁 😆 😅 😂 🤣 😊 😇 🙂 🙃 😉 😌 😍 🥰 😘 😗 😙 😚 😋 😛 😜 🤪 😝 🤗 🤭 🤫 🤔 🤐 🤨 😐 😑 😶 😏 😒 🙄 😬 😮‍💨 🤥 😔 😪 🤤 😴 😷 🤒 🤕 🤢 🤮 🥵 🥶 😵 🤯 🤠 🥳 😎 🤓 🧐 😕 😟 🙁 😮 😯 😲 😳 🥺 😦 😧 😨 😰 😥 😢 😭 😱 😖 😣 😞 😓 😩 😫 🥱 😤 😡 😠 🤬'],
+  ['👍','Gestos', '👍 👎 👌 🤌 🤏 ✌️ 🤞 🤟 🤘 🤙 👈 👉 👆 👇 ☝️ ✋ 🤚 🖐️ 🖖 👋 👏 🙌 👐 🤲 🙏 🤝 💪 ✍️ 👀 🫡 🤷 🤦 🙋 🙆 🙅 💁'],
+  ['❤️','Corações', '❤️ 🧡 💛 💚 💙 💜 🖤 🤍 🤎 💔 ❣️ 💕 💞 💓 💗 💖 💘 💝 ✨ ⭐ 🌟 💫 🔥 💯'],
+  ['✅','Trabalho', '✅ ☑️ ✔️ ❌ ❎ ⚠️ ❗ ❓ ‼️ 📌 📍 📎 📝 📋 📄 📅 📆 ⏰ ⏳ ⌛ 🕐 📞 ☎️ 📱 💻 🖨️ 📧 📨 📢 📣 🔔 🔕 💼 🗂️ 📁 🏢 🚗 🚶 🏃 🆗 🆕 🆘'],
+  ['☕','Outros', '☕ 🍵 🥤 🍕 🍔 🍰 🎂 🎉 🎊 🎁 🏆 🥇 ☀️ 🌤️ 🌧️ ⛈️ 🌈 🌙 🐶 🐱 🌻 🌹 🍀 ⚽ 🎵 💡 🔑 🚀']
+];
+var chatEmojiAba = 0;
+function chatAlternarEmojis(forcar){
+  var p = $('chat-emojis'); if(!p) return;
+  var abrir = forcar !== undefined ? forcar : p.hidden;
+  p.hidden = !abrir;
+  var b = $('chat-btn-emoji'); if(b) b.classList.toggle('on', abrir);
+  if(abrir) chatRenderEmojis();
+}
+function chatRenderEmojis(){
+  var p = $('chat-emojis'); if(!p) return;
+  var cat = CHAT_EMOJIS[chatEmojiAba];
+  p.innerHTML = '<div class="chat-emo-abas">' + CHAT_EMOJIS.map(function(c, i){
+      return '<button type="button" class="' + (i === chatEmojiAba ? 'on' : '') + '" title="' + esc(c[1]) + '" onclick="chatEmojiAba=' + i + ';chatRenderEmojis()">' + c[0] + '</button>';
+    }).join('') + '</div>'
+    + '<div class="chat-emo-titulo">' + esc(cat[1]) + '</div>'
+    + '<div class="chat-emo-grade">' + cat[2].split(' ').filter(Boolean).map(function(e){
+      return '<button type="button" onclick="chatInserirEmoji(this.textContent)">' + e + '</button>';
+    }).join('') + '</div>';
+}
+function chatInserirEmoji(e){
+  var t = $('chat-texto'); if(!t) return;
+  var ini = t.selectionStart !== undefined ? t.selectionStart : t.value.length, fim = t.selectionEnd !== undefined ? t.selectionEnd : t.value.length;
+  t.value = t.value.slice(0, ini) + e + t.value.slice(fim);
+  var pos = ini + e.length;
+  t.focus(); try{ t.setSelectionRange(pos, pos); }catch(x){}
+  chatAutoAltura(t);
+}
+/* fecha o painel de emojis ao clicar fora dele */
+document.addEventListener('click', function(ev){
+  var p = $('chat-emojis'); if(!p || p.hidden) return;
+  if(ev.target.closest && (ev.target.closest('#chat-emojis') || ev.target.closest('#chat-btn-emoji'))) return;
+  chatAlternarEmojis(false);
+});
+
 async function chatEnviar(){
   var t = $('chat-texto'); if(!t) return;
   var texto = t.value.replace(/\s+$/, '').replace(/^\s+/, '');
@@ -14444,6 +14512,7 @@ async function chatEnviar(){
   if(texto.length > 2000) texto = texto.slice(0, 2000);
   var u = state.usuarioLogado; if(!u) return;
   stChat.enviando = true; $('chat-enviar').disabled = true;
+  chatAlternarEmojis(false);
   t.value = ''; chatAutoAltura(t);
   try{
     var r = await sbClient.from('rec_chat_mensagens').insert({ usuario: u.usuario, usuario_nome: u.nome || u.usuario, mensagem: texto }).select().single();
