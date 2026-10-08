@@ -917,6 +917,28 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .rec-hist-dia-tit{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #e4e7ea;padding:4px 2px 6px;margin-bottom:6px;font-size:13.5px;font-weight:700;color:#26323b;}
   .rec-hist-dia-tit b{font-size:12px;color:#6b747d;font-weight:600;}
   .rec-hist-hora{display:inline-block;background:#e7f6e2;color:#0d8a2e;font-weight:700;border-radius:4px;padding:2px 8px;margin-right:6px;}
+  /* ===== Duo Card ===== */
+  .duo-topo{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:12.5px;}
+  .duo-status{padding:3px 10px;border-radius:12px;font-weight:700;font-size:11.5px;} .duo-status.aberta{background:#e0f2fe;color:#0369a1;} .duo-status.fechada{background:#eceef0;color:#5a6570;}
+  .duo-salvo{font-size:11.5px;color:#0d8a2e;} .duo-salvo.pend{color:#b45309;}
+  .duo-config{display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;font-size:12px;}
+  .duo-config label{display:flex;flex-direction:column;gap:3px;color:#555;}
+  .duo-config input[type=number]{width:80px;}
+  .duo-tab td{vertical-align:middle;}
+  .duo-r{text-align:right;white-space:nowrap;} .duo-c{text-align:center;}
+  .duo-cpf{font-family:Consolas, monospace;font-size:11.5px;white-space:nowrap;}
+  .duo-inp{border:1px solid #d6dde3;border-radius:4px;padding:4px 6px;font-size:12px;font-family:inherit;background:#fff;}
+  .duo-inp:focus{outline:none;border-color:#2e8fd6;box-shadow:0 0 0 2px rgba(46,143,214,.15);}
+  .duo-inp.num{text-align:center;}
+  .duo-valor{font-weight:700;} .duo-valor.mudou{color:#b45309;}
+  .duo-conf{display:inline-block;padding:2px 8px;border-radius:10px;font-size:11px;font-weight:700;white-space:nowrap;} .duo-conf.ok{background:#e7f6e2;color:#0d8a2e;} .duo-conf.off{background:#eceef0;color:#5a6570;}
+  .duo-aviso{display:block;font-size:10.5px;color:#b45309;font-weight:600;} .duo-aviso.novo{color:#0369a1;}
+  tr.duo-sem td{background:#fffaf0;} tr.duo-novo td{background:#f2f8fd;}
+  .duo-rm{cursor:pointer;color:#a32a1f;padding:2px 6px;border-radius:4px;} .duo-rm:hover{background:#fdecea;}
+  .duo-tab tfoot td{border-top:2px solid #d6dde3;background:#f7f9fb;}
+  .duo-nova h3{margin:0 0 8px;} .duo-nova-campos{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin:12px 0 16px;}
+  .duo-nova-campos label{display:flex;flex-direction:column;gap:3px;font-size:12px;color:#555;} .duo-dica{font-size:11.5px;color:#6b747d;}
+  .duo-check{display:inline-flex;align-items:center;gap:6px;cursor:pointer;font-weight:600;} .duo-check input{width:16px;height:16px;accent-color:#0d8a2e;}
   /* ===== Auditoria ===== */
   .aud-filtros{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:12px;font-size:12.5px;}
   .aud-tab tbody tr{cursor:pointer;} .aud-tab tbody tr:hover td{background:#f5f9fc;}
@@ -2405,6 +2427,9 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
         <div class="fld"><label>Pessoa com Deficiência</label><div class="val" id="fd-deficiente"></div></div>
         <div class="fld"><label>Tipo de Deficiência</label><div class="val" id="fd-tipodef"></div></div>
       </div>
+      <div class="frow c3">
+        <div class="fld"><label>DUO CARD</label><div class="val" id="fd-duocard"></div></div>
+      </div>
 
     </div>
   </div>
@@ -2710,6 +2735,11 @@ var AMBIENTES = [
         itens: ['Faturas por Operadora','Conciliação']
       },
       {
+        titulo: 'Duo Card',
+        sub: 'Apuração mensal do vale transporte Duo Card',
+        itens: ['Apuração Duo Card']
+      },
+      {
         titulo: 'Relatórios e Dashboards',
         sub: 'Selecione a rotina na lista abaixo',
         itens: ['Custo por Centro de Custo','Beneficiários Ativos']
@@ -2939,7 +2969,8 @@ function dpLinhaParaColaborador(r){
     valorMultaFgts: (r.valor_multa_fgts === null || r.valor_multa_fgts === undefined) ? '' : r.valor_multa_fgts,
     feriasPagar: !!r.ferias_pagar, dataPagamentoFerias: r.data_pagamento_ferias || '',
     valorFerias: (r.valor_ferias === null || r.valor_ferias === undefined) ? '' : r.valor_ferias,
-    removidoImportacao: !!r.removido_importacao
+    removidoImportacao: !!r.removido_importacao,
+    duoCard: r.duo_card === undefined ? undefined : !!r.duo_card
   };
 }
 
@@ -3006,7 +3037,7 @@ function numeroBRParaFloat(v){
 }
 
 function dpColaboradorParaLinha(p){
-  return {
+  var linha = {
     matricula: p.matricula, nome: p.nome, cpf: p.cpf || null, rg: p.rg || null,
     ctps: p.ctps || null, serie_ctps: p.serieCtps || null, pis: p.pis || null,
     sexo: p.sexo || null, data_nascimento: dataBRParaISO(p.dataNascimento), nome_mae: p.nomeMae || null,
@@ -3032,6 +3063,8 @@ function dpColaboradorParaLinha(p){
     valor_ferias: numeroBRParaFloat(p.valorFerias),
     removido_importacao: !!p.removidoImportacao
   };
+  if(p.duoCard !== undefined) linha.duo_card = !!p.duoCard;
+  return linha;
 }
 
 /* Mostra o status da conexão de forma PERSISTENTE (não some sozinho como o
@@ -3640,6 +3673,7 @@ var ROTINAS_PRONTAS = {
   'Atendimentos::Atendimentos Agendados': 'abrirDashboardAtendimentos',
   'Atendimentos::Histórico de Comparecimento': 'abrirRecHistorico',
   'Comunicação::Chat': 'abrirRecChat',
+  'Duo Card::Apuração Duo Card': 'abrirDuoApuracao',
   'Calendário::Calendário': 'abrirCalendario',
   'Emissão de Documentos::Emissão de Documentos': 'abrirEmissaoDocumentos',
   'Cadastros da Trilha::Salas': 'abrirTrilhaSalas',
@@ -8024,6 +8058,7 @@ function verDetalheColab(idx){
   setFd('fd-conta', p.contaDepSalario);
 
   setFd('fd-pericul', p.possuiPericulosidade);
+  if($('fd-duocard')) $('fd-duocard').innerHTML = (typeof duoHtmlCheckFicha === 'function') ? duoHtmlCheckFicha(idx) : '-';
   setFd('fd-deficiente', p.deficiente);
   setFd('fd-tipodef', p.tipoDeficiencia);
 
@@ -14602,6 +14637,347 @@ async function chatEnviar(){
   }finally{
     stChat.enviando = false; var b = $('chat-enviar'); if(b) b.disabled = false; t.focus();
   }
+}
+
+/* =====================================================================
+   BENEFÍCIO - APURAÇÃO DUO CARD
+   - Quem aparece: colaboradores com o quadrinho "DUO CARD" marcado no
+     cadastro (Departamento Pessoal > Funcionários > ficha) e sem desligamento.
+   - Cada competência (mês) fica salva em ben_duo_apuracoes, com o valor
+     do dia, os dias padrão e uma linha por colaborador (dias, valor fixo
+     opcional, setor, observação).
+   - Valor atual = dias × valor do dia (ou o "valor fixo", para acordos).
+   - "Valor anterior" vem da apuração do mês anterior.
+   - Salva sozinho a cada alteração. Apuração "Fechada" não pode ser editada.
+   ===================================================================== */
+var stDuo = { competencia: '', apur: null, anterior: null, busca: '', salvando: false, timer: null, ccDesc: {}, ordem: { chave: 'nome', dir: 'asc' } };
+
+function duoCpf(v){ var d = String(v == null ? '' : v).replace(/\D/g, ''); return d ? ('00000000000' + d).slice(-11) : ''; }
+function duoChave(i){ return i.cpf ? 'c' + duoCpf(i.cpf) : 'm' + String(i.matricula || ''); }
+function duoMoeda(v){ return (Number(v) || 0).toLocaleString('pt-BR', { style:'currency', currency:'BRL' }); }
+function duoCompRotulo(c){ var p = String(c || '').split('-'); return p.length === 2 ? p[1] + '/' + p[0] : c; }
+function duoCompAnterior(c){ var p = c.split('-').map(Number), d = new Date(p[0], p[1] - 2, 1); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0'); }
+function duoDiasUteis(c){
+  var p = c.split('-').map(Number), d = new Date(p[0], p[1] - 1, 1), n = 0;
+  while(d.getMonth() === p[1] - 1){ var w = d.getDay(); if(w !== 0 && w !== 6) n++; d.setDate(d.getDate() + 1); }
+  return n;
+}
+function duoValorItem(i, apur){
+  if(i.valor_fixo !== null && i.valor_fixo !== undefined && i.valor_fixo !== '') return Number(i.valor_fixo) || 0;
+  return (Number(i.dias) || 0) * (Number(apur.valor_dia) || 0);
+}
+function duoEditavel(){ return stDuo.apur && stDuo.apur.status !== 'Fechada'; }
+function duoAfastado(p){ return /afast|licen|aux[ií]lio|inss/i.test(String(p.situacaoFolha || '')); }
+
+/* ---------- abrir / carregar ---------- */
+function abrirDuoApuracao(){
+  trilhaMostrarPainel('Duo Card', 'Apuração Duo Card');
+  $('dash-crumb').textContent = 'Benefício > Duo Card';
+  if(!stDuo.competencia){ var h = new Date(); stDuo.competencia = h.getFullYear() + '-' + String(h.getMonth() + 1).padStart(2, '0'); }
+  duoCarregar();
+}
+async function duoCarregar(){
+  var el = $('viz-conteudo');
+  el.innerHTML = '<div style="padding:40px;text-align:center;">Carregando apuração…</div>';
+  try{
+    try{ (await ccListaCompleta()).forEach(function(c){ stDuo.ccDesc[c.codigo] = c.descricao; }); }catch(e){}
+    var r = await sbClient.from('ben_duo_apuracoes').select('*').in('competencia', [stDuo.competencia, duoCompAnterior(stDuo.competencia)]);
+    if(r.error) throw r.error;
+    stDuo.apur = (r.data || []).find(function(a){ return a.competencia === stDuo.competencia; }) || null;
+    stDuo.anterior = (r.data || []).find(function(a){ return a.competencia === duoCompAnterior(stDuo.competencia); }) || null;
+    if(!stDuo.apur){ renderDuoNova(); return; }
+    stDuo.apur.itens = Array.isArray(stDuo.apur.itens) ? stDuo.apur.itens : [];
+    duoSincronizar(false);
+    renderDuo();
+  }catch(e){
+    console.error(e);
+    el.innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Não foi possível carregar a apuração.<br><small style="color:#a32a1f;">' + esc(dpFormatarErroSupabase('Motivo', e)) + '</small><br><small>Confira se o SQL do Duo Card foi rodado no Supabase.</small></div>';
+  }
+}
+function duoTrocarCompetencia(v){ if(!v) return; stDuo.competencia = v; duoCarregar(); }
+
+/* colaboradores com direito (quadrinho marcado e sem desligamento) */
+function duoElegiveis(){
+  var base = state.colaboradoresTodos || state.colaboradores || [];
+  return base.filter(function(p){ return p.duoCard === true && !p.dataDemissao && !p.removidoImportacao; });
+}
+function duoItemDoColaborador(p, apur){
+  var ant = stDuo.anterior && (stDuo.anterior.itens || []).find(function(i){ return duoChave(i) === duoChave({ cpf: p.cpf, matricula: p.matricula }); });
+  var afast = duoAfastado(p);
+  var it = {
+    cpf: duoCpf(p.cpf), matricula: p.matricula || null, nome: p.nome || '', cc: String(p.centroCusto || '').trim(),
+    setor: (ant && ant.setor) || stDuo.ccDesc[String(p.centroCusto || '').trim()] || '',
+    situacao: afast ? (p.situacaoFolha || 'AFASTADO') : 'ATIVO',
+    dias: afast ? 0 : (apur.dias_padrao || 0),
+    valor_fixo: ant && ant.valor_fixo !== undefined ? ant.valor_fixo : null,
+    valor_anterior: ant ? Number(ant.valor) || 0 : null,
+    obs: afast ? (p.situacaoFolha || '') : ''
+  };
+  it.valor = duoValorItem(it, apur);
+  return it;
+}
+
+/* Inclui quem passou a ter direito e marca quem perdeu (não remove: o RH decide) */
+function duoSincronizar(avisar){
+  var apur = stDuo.apur; if(!apur) return;
+  var elig = duoElegiveis(), porChave = {};
+  apur.itens.forEach(function(i){ porChave[duoChave(i)] = i; });
+  var novos = 0;
+  elig.forEach(function(p){
+    var k = duoChave({ cpf: p.cpf, matricula: p.matricula });
+    var it = porChave[k] || (p.matricula && apur.itens.find(function(i){ return String(i.matricula || '') === String(p.matricula); }));
+    if(it){
+      if(!it.matricula && p.matricula) it.matricula = p.matricula;
+      delete it.sem_direito;
+      return;
+    }
+    if(apur.status === 'Fechada') return;
+    var n = duoItemDoColaborador(p, apur); n.novo = true; apur.itens.push(n); novos++;
+  });
+  var chavesElig = {}; elig.forEach(function(p){ chavesElig[duoChave({ cpf: p.cpf, matricula: p.matricula })] = 1; if(p.matricula) chavesElig['m' + p.matricula] = 1; });
+  var semDireito = 0;
+  apur.itens.forEach(function(i){
+    var ok = chavesElig[duoChave(i)] || (i.matricula && chavesElig['m' + i.matricula]);
+    if(!ok && (state.colaboradoresTodos || state.colaboradores || []).length){ i.sem_direito = true; semDireito++; } else delete i.sem_direito;
+    if(stDuo.anterior && (i.valor_anterior === null || i.valor_anterior === undefined)){
+      var ant = (stDuo.anterior.itens || []).find(function(a){ return duoChave(a) === duoChave(i); });
+      if(ant) i.valor_anterior = Number(ant.valor) || 0;
+    }
+  });
+  if(novos && apur.status !== 'Fechada') duoAgendarSalvar();
+  if(avisar) toast(novos ? novos + ' colaborador(es) com direito incluído(s).' : 'A apuração já está igual ao cadastro.' + (semDireito ? ' ' + semDireito + ' sem direito marcado(s) em amarelo.' : ''));
+}
+
+/* ---------- nova competência ---------- */
+function renderDuoNova(){
+  var dias = duoDiasUteis(stDuo.competencia), elig = duoElegiveis();
+  var valorDia = stDuo.anterior ? stDuo.anterior.valor_dia : 10;
+  $('viz-conteudo').innerHTML = duoHtmlTopo()
+    + '<div class="viz-card"><div class="vz-body duo-nova"><h3>Apuração de ' + esc(duoCompRotulo(stDuo.competencia)) + ' ainda não foi criada</h3>'
+    + '<p>Serão incluídos os <b>' + elig.length + '</b> colaborador(es) com <b>DUO CARD</b> marcado no cadastro' + (stDuo.anterior ? ', com setor, valor fixo e "valor anterior" vindos de ' + esc(duoCompRotulo(stDuo.anterior.competencia)) : '') + '.</p>'
+    + '<div class="duo-nova-campos"><label>Valor do dia (R$)<input type="text" id="duo-n-valor" class="filtro-data" value="' + esc(Number(valorDia).toLocaleString('pt-BR', { minimumFractionDigits:2 })) + '"></label>'
+    + '<label>Dias padrão<input type="number" id="duo-n-dias" class="filtro-data" min="0" max="31" value="' + dias + '"></label>'
+    + '<span class="duo-dica">' + dias + ' dias úteis (seg. a sex.) em ' + esc(duoCompRotulo(stDuo.competencia)) + '. Ajuste para feriados, se precisar.</span></div>'
+    + '<button class="btn primary" onclick="duoCriar()">Criar apuração de ' + esc(duoCompRotulo(stDuo.competencia)) + '</button>'
+    + (!elig.length ? '<p class="mqp-alerta-txt" style="margin-top:10px;">Nenhum colaborador com DUO CARD marcado. Marque o quadrinho na ficha do colaborador (Departamento Pessoal > Funcionários).</p>' : '')
+    + '</div></div>';
+}
+async function duoCriar(){
+  var vd = numeroBRParaFloat($('duo-n-valor').value), dp = parseInt($('duo-n-dias').value, 10);
+  if(!(vd > 0)){ toast('Informe o valor do dia.', true); return; }
+  if(!(dp >= 0)){ toast('Informe os dias padrão.', true); return; }
+  var apur = { competencia: stDuo.competencia, valor_dia: vd, dias_padrao: dp, status: 'Aberta', itens: [] };
+  stDuo.apur = apur;
+  duoElegiveis().forEach(function(p){ apur.itens.push(duoItemDoColaborador(p, apur)); });
+  apur.itens.sort(function(a,b){ return String(a.nome).localeCompare(String(b.nome), 'pt-BR'); });
+  try{
+    var r = await sbClient.from('ben_duo_apuracoes').insert({ competencia: apur.competencia, valor_dia: vd, dias_padrao: dp, status: 'Aberta', itens: apur.itens, updated_by: mqpUsuario().nome }).select().single();
+    if(r.error) throw r.error;
+    stDuo.apur = r.data;
+    toast('Apuração de ' + duoCompRotulo(apur.competencia) + ' criada com ' + apur.itens.length + ' colaborador(es).');
+    renderDuo();
+  }catch(e){ stDuo.apur = null; toast(dpFormatarErroSupabase('Não foi possível criar', e), true, 9000); }
+}
+
+/* ---------- tela da apuração ---------- */
+function duoHtmlTopo(){
+  return '<div class="duo-topo"><label>Competência <input type="month" class="filtro-data" value="' + esc(stDuo.competencia) + '" onchange="duoTrocarCompetencia(this.value)"></label>'
+    + (stDuo.apur ? '<span class="duo-status ' + (stDuo.apur.status === 'Fechada' ? 'fechada' : 'aberta') + '">' + esc(stDuo.apur.status) + '</span><span id="duo-salvo" class="duo-salvo"></span>' : '')
+    + '</div>';
+}
+function renderDuo(manterFoco){
+  var apur = stDuo.apur, ed = duoEditavel(), el = $('viz-conteudo');
+  apur.itens.forEach(function(i){ i.valor = duoValorItem(i, apur); });
+  var q = normalizeHeader(stDuo.busca);
+  var lista = apur.itens.map(function(it, idx){ return { it: it, idx: idx }; }).filter(function(x){
+    return !q || normalizeHeader([x.it.nome, x.it.cpf, x.it.cc, x.it.setor, x.it.matricula].join(' ')).indexOf(q) >= 0;
+  });
+  lista = duoOrdenar(lista);
+  var total = apur.itens.reduce(function(s,i){ return s + (Number(i.valor) || 0); }, 0);
+  var totalAnt = apur.itens.reduce(function(s,i){ return s + (Number(i.valor_anterior) || 0); }, 0);
+  var comValor = apur.itens.filter(function(i){ return Number(i.valor) > 0; }).length;
+  var config = '<div class="duo-config">'
+    + '<label>Valor do dia (R$)<input type="text" class="filtro-data" value="' + esc(Number(apur.valor_dia).toLocaleString('pt-BR', { minimumFractionDigits:2 })) + '"' + (ed ? '' : ' disabled') + ' onchange="duoMudarConfig(\'valor_dia\', this.value)"></label>'
+    + '<label>Dias padrão<input type="number" class="filtro-data" min="0" max="31" value="' + esc(apur.dias_padrao) + '"' + (ed ? '' : ' disabled') + ' onchange="duoMudarConfig(\'dias_padrao\', this.value)"></label>'
+    + (ed ? '<button class="btn" onclick="duoAplicarDiasPadrao()" title="Coloca os dias padrão em todos que não estão com 0 dias (afastados)">Aplicar dias padrão a todos</button>' : '')
+    + '<input type="text" id="duo-busca" class="filtro-data" style="min-width:200px;" placeholder="Buscar nome, CPF, CC, setor" value="' + esc(stDuo.busca) + '" oninput="stDuo.busca=this.value;renderDuo(true)">'
+    + '<span style="flex:1"></span>'
+    + (ed ? '<button class="btn" onclick="duoSincronizar(true);renderDuo()">↻ Conferir com o cadastro</button>' : '')
+    + '<button class="btn" onclick="duoExportar()">⬇ Exportar Excel</button>'
+    + (ed ? '<button class="btn primary" onclick="duoFechar(true)">🔒 Fechar apuração</button>' : (state.usuarioLogado && state.usuarioLogado.admin ? '<button class="btn" onclick="duoFechar(false)">🔓 Reabrir</button>' : ''))
+    + '</div>';
+  var kpis = vizKpiRow([
+    { label:'Colaboradores', value: fmtNum(apur.itens.length), sub: comValor + ' com valor' },
+    { label:'Total ' + duoCompRotulo(apur.competencia), value: duoMoeda(total) },
+    { label:'Total anterior', value: duoMoeda(totalAnt) },
+    { label:'Diferença', value: (total - totalAnt >= 0 ? '+' : '') + duoMoeda(total - totalAnt), subClass: total - totalAnt > 0 ? 'neg' : '' }
+  ]);
+  var inp = function(idx, campo, val, tipo, largura){
+    if(!ed) return esc(val === null || val === undefined ? '' : (tipo === 'moeda' && val !== '' ? duoMoeda(val) : val));
+    var v = val === null || val === undefined ? '' : (tipo === 'moeda' ? Number(val).toLocaleString('pt-BR', { minimumFractionDigits:2 }) : val);
+    return '<input class="duo-inp' + (tipo === 'num' ? ' num' : '') + '" style="width:' + largura + 'px" type="' + (tipo === 'num' ? 'number' : 'text') + '"' + (tipo === 'num' ? ' min="0" max="31"' : '')
+      + ' value="' + esc(v) + '"' + (tipo === 'moeda' ? ' placeholder="-"' : '') + ' onchange="duoEditar(' + idx + ',\'' + campo + '\', this.value)">';
+  };
+  var linhas = lista.map(function(x){
+    var i = x.it, conf = Number(i.valor) > 0 ? 'ATIVO DUO' : (/afast|licen/i.test(i.situacao + ' ' + i.obs) ? 'AFASTADO' : 'SEM VALOR');
+    var dif = (i.valor_anterior !== null && i.valor_anterior !== undefined) && Number(i.valor) !== Number(i.valor_anterior);
+    return '<tr class="' + (i.sem_direito ? 'duo-sem' : '') + (i.novo ? ' duo-novo' : '') + '">'
+      + '<td class="duo-cpf">' + esc(i.cpf ? i.cpf.replace(/(\d{3})(\d{3})(\d{3})(\d{2})/, '$1.$2.$3-$4') : '-') + '</td>'
+      + '<td><b>' + esc(i.nome) + '</b>' + (i.sem_direito ? '<small class="duo-aviso">sem DUO CARD no cadastro</small>' : '') + (i.novo ? '<small class="duo-aviso novo">novo</small>' : '') + '</td>'
+      + '<td>' + esc(i.cc || '-') + '</td>'
+      + '<td>' + inp(x.idx, 'setor', i.setor, 'texto', 130) + '</td>'
+      + '<td>' + esc(i.situacao || '-') + '</td>'
+      + '<td class="duo-r">' + (i.valor_anterior === null || i.valor_anterior === undefined ? '-' : duoMoeda(i.valor_anterior)) + '</td>'
+      + '<td class="duo-c">' + inp(x.idx, 'dias', i.dias, 'num', 58) + '</td>'
+      + '<td class="duo-c">' + inp(x.idx, 'valor_fixo', i.valor_fixo, 'moeda', 82) + '</td>'
+      + '<td class="duo-r duo-valor' + (dif ? ' mudou' : '') + '" title="' + (i.valor_fixo !== null && i.valor_fixo !== undefined && i.valor_fixo !== '' ? 'Valor fixo' : (Number(i.dias) || 0) + ' dia(s) × ' + duoMoeda(apur.valor_dia)) + '">' + duoMoeda(i.valor) + '</td>'
+      + '<td><span class="duo-conf ' + (conf === 'ATIVO DUO' ? 'ok' : 'off') + '">' + conf + '</span></td>'
+      + '<td>' + inp(x.idx, 'obs', i.obs, 'texto', 170) + '</td>'
+      + '<td>' + (ed ? '<a class="duo-rm" title="Tirar desta apuração" onclick="duoRemover(' + x.idx + ')">✕</a>' : '') + '</td></tr>';
+  }).join('');
+  var tabela = '<div style="overflow-x:auto;"><table class="vz-table duo-tab"><thead><tr>'
+    + [['cpf','CPF'],['nome','Nome'],['cc','CC'],['setor','Setor'],['situacao','Situação'],['valor_anterior','Valor anterior'],['dias','Dias'],['valor_fixo','Valor fixo'],['valor','Valor atual'],['conf','Conf.'],['obs','Observação']].map(function(c){
+        var at = stDuo.ordem.chave === c[0];
+        return '<th class="cs-th-ordena' + (at ? ' ativa' : '') + '" onclick="duoOrdenarPor(\'' + c[0] + '\')" title="Clique para ordenar por ' + c[1] + '">' + c[1] + '<span class="cs-seta">' + (at ? (stDuo.ordem.dir === 'desc' ? '▼' : '▲') : '↕') + '</span></th>';
+      }).join('') + '<th></th></tr></thead><tbody>'
+    + linhas + '</tbody><tfoot><tr><td colspan="5"><b>TOTAL</b>' + (q ? ' <small>(de todos, não só os filtrados)</small>' : '') + '</td><td class="duo-r"><b>' + duoMoeda(totalAnt) + '</b></td><td></td><td></td><td class="duo-r"><b>' + duoMoeda(total) + '</b></td><td colspan="3"></td></tr></tfoot></table></div>';
+  /* resumo por setor (como a aba PEDIDOS) */
+  var setores = {};
+  apur.itens.forEach(function(i){ if(!(Number(i.valor) > 0)) return; var k = i.setor || '(sem setor)'; setores[k] = setores[k] || { q:0, v:0 }; setores[k].q++; setores[k].v += Number(i.valor) || 0; });
+  var resumo = '<table class="vz-table"><thead><tr><th>Setor</th><th>Quantidade</th><th>Valor</th></tr></thead><tbody>'
+    + Object.keys(setores).sort(function(a,b){ return a.localeCompare(b, 'pt-BR'); }).map(function(k){ return '<tr><td>' + esc(k) + '</td><td>' + setores[k].q + '</td><td class="duo-r">' + duoMoeda(setores[k].v) + '</td></tr>'; }).join('')
+    + '</tbody><tfoot><tr><td><b>TOTAL</b></td><td><b>' + comValor + '</b></td><td class="duo-r"><b>' + duoMoeda(total) + '</b></td></tr></tfoot></table>';
+  el.innerHTML = duoHtmlTopo() + config + kpis
+    + '<div class="viz-grid full">' + trilhaCard('Conferência - ' + duoCompRotulo(apur.competencia), 'Valor atual = dias × ' + duoMoeda(apur.valor_dia) + ' (ou o valor fixo, quando preenchido)' + (ed ? '. As alterações são salvas sozinhas.' : '. Apuração fechada: somente consulta.'), tabela) + '</div>'
+    + '<div class="viz-grid full" style="margin-top:16px;">' + trilhaCard('Resumo por setor', 'Só quem tem valor no mês', resumo) + '</div>';
+  if(manterFoco){ var b = $('duo-busca'); if(b){ b.focus(); b.setSelectionRange(b.value.length, b.value.length); } }
+  duoMostrarSalvo();
+}
+
+
+/* ordenação da apuração (clique no título da coluna): textos A-Z / Z-A,
+   valores e dias do maior para o menor no 1º clique; vazios sempre no fim */
+var DUO_COLS_NUM = ['valor_anterior','dias','valor_fixo','valor'];
+function duoOrdenarPor(chave){
+  var o = stDuo.ordem;
+  stDuo.ordem = (o.chave === chave) ? { chave: chave, dir: o.dir === 'asc' ? 'desc' : 'asc' } : { chave: chave, dir: DUO_COLS_NUM.indexOf(chave) >= 0 ? 'desc' : 'asc' };
+  renderDuo();
+}
+function duoValorOrdem(i, chave){
+  if(chave === 'conf') return Number(i.valor) > 0 ? 'ATIVO DUO' : (/afast|licen/i.test((i.situacao || '') + ' ' + (i.obs || '')) ? 'AFASTADO' : 'SEM VALOR');
+  var v = i[chave];
+  if(v === null || v === undefined || v === '') return null;
+  if(DUO_COLS_NUM.indexOf(chave) >= 0) return Number(v);
+  return String(v).trim();
+}
+function duoOrdenar(lista){
+  var o = stDuo.ordem; if(!o || !o.chave) return lista;
+  var fator = o.dir === 'desc' ? -1 : 1;
+  return lista.slice().sort(function(a, b){
+    var va = duoValorOrdem(a.it, o.chave), vb = duoValorOrdem(b.it, o.chave);
+    if(va === null && vb === null) return a.idx - b.idx;
+    if(va === null) return 1;
+    if(vb === null) return -1;
+    var r = (typeof va === 'number' && typeof vb === 'number') ? va - vb : String(va).localeCompare(String(vb), 'pt-BR', { numeric: true, sensitivity: 'base' });
+    return (r * fator) || (String(a.it.nome).localeCompare(String(b.it.nome), 'pt-BR'));
+  });
+}
+
+/* ---------- edição ---------- */
+function duoEditar(idx, campo, v){
+  if(!duoEditavel()) return;
+  var it = stDuo.apur.itens[idx]; if(!it) return;
+  if(campo === 'dias'){ var n = parseInt(v, 10); it.dias = isNaN(n) ? 0 : Math.max(0, Math.min(31, n)); }
+  else if(campo === 'valor_fixo'){ var f = String(v).trim() === '' ? null : numeroBRParaFloat(String(v).replace(/R\$\s?/, '')); it.valor_fixo = (f === null || isNaN(f)) ? null : f; }
+  else it[campo] = String(v).trim();
+  delete it.novo;
+  duoAgendarSalvar();
+  renderDuo();
+}
+function duoMudarConfig(campo, v){
+  if(!duoEditavel()) return;
+  if(campo === 'valor_dia'){ var vd = numeroBRParaFloat(v); if(!(vd >= 0)) return; stDuo.apur.valor_dia = vd; }
+  else { var d = parseInt(v, 10); if(!(d >= 0)) return; stDuo.apur.dias_padrao = d; }
+  duoAgendarSalvar(); renderDuo();
+}
+function duoAplicarDiasPadrao(){
+  var dp = stDuo.apur.dias_padrao;
+  if(!confirm('Colocar ' + dp + ' dia(s) para todos os colaboradores que hoje não estão com 0 dias (afastados ficam como estão)?')) return;
+  stDuo.apur.itens.forEach(function(i){ if(Number(i.dias) > 0) i.dias = dp; });
+  duoAgendarSalvar(); renderDuo();
+}
+function duoRemover(idx){
+  var it = stDuo.apur.itens[idx]; if(!it) return;
+  if(!confirm('Tirar ' + it.nome + ' desta apuração?' + (it.sem_direito ? '' : '\n\nEle continua com DUO CARD no cadastro e volta se você clicar em "Conferir com o cadastro".'))) return;
+  stDuo.apur.itens.splice(idx, 1);
+  duoAgendarSalvar(); renderDuo();
+}
+
+/* ---------- salvar ---------- */
+function duoAgendarSalvar(){ clearTimeout(stDuo.timer); stDuo.pendente = true; duoMostrarSalvo(); stDuo.timer = setTimeout(duoSalvar, 900); }
+async function duoSalvar(){
+  var apur = stDuo.apur; if(!apur || !apur.id) return;
+  stDuo.salvando = true; duoMostrarSalvo();
+  try{
+    apur.itens.forEach(function(i){ i.valor = duoValorItem(i, apur); });
+    var r = await sbClient.from('ben_duo_apuracoes').update({ valor_dia: apur.valor_dia, dias_padrao: apur.dias_padrao, status: apur.status, itens: apur.itens, updated_at: new Date().toISOString(), updated_by: mqpUsuario().nome }).eq('id', apur.id);
+    if(r.error) throw r.error;
+    stDuo.pendente = false;
+  }catch(e){ toast(dpFormatarErroSupabase('Não foi possível salvar a apuração', e), true, 9000); }
+  finally{ stDuo.salvando = false; duoMostrarSalvo(); }
+}
+function duoMostrarSalvo(){
+  var el = $('duo-salvo'); if(!el) return;
+  el.textContent = stDuo.salvando ? 'Salvando…' : (stDuo.pendente ? 'Alterações não salvas…' : '✓ Salvo');
+  el.className = 'duo-salvo' + (stDuo.pendente || stDuo.salvando ? ' pend' : '');
+}
+async function duoFechar(fechar){
+  if(fechar && !confirm('Fechar a apuração de ' + duoCompRotulo(stDuo.apur.competencia) + '? Depois de fechada, ela não pode ser editada (um administrador pode reabrir).')) return;
+  clearTimeout(stDuo.timer);
+  stDuo.apur.status = fechar ? 'Fechada' : 'Aberta';
+  await duoSalvar();
+  toast('Apuração ' + (fechar ? 'fechada.' : 'reaberta.'));
+  renderDuo();
+}
+
+/* ---------- quadrinho DUO CARD na ficha do colaborador ---------- */
+function duoHtmlCheckFicha(idx){
+  var p = state.colaboradores[idx]; if(!p) return '-';
+  return '<label class="duo-check"><input type="checkbox"' + (p.duoCard ? ' checked' : '') + ' onchange="duoAlternarDireito(' + idx + ', this.checked)"> <span>' + (p.duoCard ? 'Sim, tem direito' : 'Não') + '</span></label>';
+}
+async function duoAlternarDireito(idx, marcado){
+  var p = state.colaboradores[idx]; if(!p) return;
+  var antes = p.duoCard;
+  p.duoCard = !!marcado;
+  var todos = (state.colaboradoresTodos || []).find(function(c){ return c.matricula === p.matricula; }); if(todos && todos !== p) todos.duoCard = p.duoCard;
+  var lbl = $('fd-duocard'); if(lbl) lbl.innerHTML = duoHtmlCheckFicha(idx);
+  var r = await sbClient.from('dp_colaboradores').update({ duo_card: p.duoCard }).eq('matricula', p.matricula);
+  if(r.error){
+    p.duoCard = antes; if(todos) todos.duoCard = antes; if(lbl) lbl.innerHTML = duoHtmlCheckFicha(idx);
+    toast(dpFormatarErroSupabase('Não foi possível salvar o DUO CARD (rode o SQL do Duo Card)', r.error), true, 9000);
+    return;
+  }
+  toast(p.nome + ': DUO CARD ' + (p.duoCard ? 'marcado (aparece na próxima conferência da apuração).' : 'desmarcado.'));
+}
+
+/* ---------- exportar (mesmo formato da planilha) ---------- */
+function duoExportar(){
+  if(!window.XLSX){ toast('Exportação indisponível (biblioteca de Excel não carregou).', true); return; }
+  var apur = stDuo.apur, comp = duoCompRotulo(apur.competencia);
+  var base = state.colaboradoresTodos || state.colaboradores || [];
+  var nasc = function(i){ var c = base.find(function(p){ return duoCpf(p.cpf) === duoCpf(i.cpf) || (i.matricula && p.matricula === i.matricula); }); return c ? c.dataNascimento || '' : ''; };
+  var conf = [['CPF','NOME','VALOR ANTERIOR','DIAS','VALOR ATUAL','SITUAÇÃO','CC','CONF','SETOR','OBSERVAÇÃO']]
+    .concat(apur.itens.map(function(i){ return [i.cpf, i.nome, i.valor_anterior === null || i.valor_anterior === undefined ? '' : Number(i.valor_anterior), Number(i.dias) || 0, Number(i.valor) || 0, i.situacao, i.cc, Number(i.valor) > 0 ? 'ATIVO DUO' : 'SEM VALOR', i.setor, i.obs]; }));
+  conf.push(['TOTAL','', apur.itens.reduce(function(s,i){ return s + (Number(i.valor_anterior) || 0); }, 0), '', apur.itens.reduce(function(s,i){ return s + (Number(i.valor) || 0); }, 0)]);
+  var prem = [['* NÚMERO DE IDENTIFICAÇÃO','*NOME','*VALOR','*DATA DE NASCIMENTO','CÓDIGO DA UNIDADE']]
+    .concat(apur.itens.filter(function(i){ return Number(i.valor) > 0; }).map(function(i){ return [i.cpf, i.nome, Number(i.valor), nasc(i), i.cc]; }));
+  var set = {}; apur.itens.forEach(function(i){ if(!(Number(i.valor) > 0)) return; var k = i.setor || '(sem setor)'; set[k] = set[k] || [k, 0, 0]; set[k][1]++; set[k][2] += Number(i.valor); });
+  var ped = [['VALE TRANSPORTE DUO - ' + comp], [], ['SETOR','QUANTIDADE','VALOR']].concat(Object.keys(set).sort().map(function(k){ return set[k]; }));
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(conf), 'CONFERÊNCIA');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(prem), 'PREMIADOS');
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(ped), 'PEDIDOS');
+  XLSX.writeFile(wb, 'DUO CARD ' + comp.replace('/', '-') + '.xlsx');
 }
 
 /* =====================================================================
