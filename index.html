@@ -928,6 +928,12 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .aud-seta{color:#9aa3ab;text-align:center;}
   .aud-antes code,.aud-depois code{font-size:11px;white-space:pre-wrap;word-break:break-word;}
   .aud-rodape{font-size:11.5px;color:#7a838c;margin-top:14px;}
+  /* ordenação ao clicar no título da coluna */
+  .cs-th-ordena{cursor:pointer;user-select:none;white-space:nowrap;}
+  .cs-th-ordena:hover{background:#e7eff7;}
+  .cs-th-ordena.ativa{color:var(--azul);}
+  .cs-seta{display:inline-block;margin-left:5px;font-size:10px;color:#9aa3ab;}
+  .cs-th-ordena.ativa .cs-seta{color:var(--azul);}
   /* tempo real */
   .rt-status{display:inline-flex;align-items:center;gap:6px;font-size:11.5px;color:#7a838c;margin-right:8px;white-space:nowrap;vertical-align:middle;}
   .rt-status i{width:8px;height:8px;border-radius:50%;background:#b8bec5;}
@@ -4724,7 +4730,7 @@ var stateCadSimples = { chave: null, dados: [], editandoId: null, filtros: {} };
 function abrirCadSimples(chave){
   var cfg = CADASTROS_SIMPLES[chave];
   if(!cfg) return;
-  if(stateCadSimples.chave !== chave) stateCadSimples.pasta = null;
+  if(stateCadSimples.chave !== chave){ stateCadSimples.pasta = null; stateCadSimples.ordem = null; }
   if($('cs-pastas')){ delete $('cs-pastas').dataset.montado; delete $('cs-pastas').dataset.assinatura; }
   stateCadSimples.chave = chave;
   stateCadSimples.dados = [];
@@ -4795,7 +4801,11 @@ function renderCadSimplesCabecalho(cfg){
   var extra = (cfg.tabela === 'usuarios') ? '<th>Senha</th>' : '';
   $('cs-thead').innerHTML = '<tr>' + cfg.colunasTabela.map(function(chaveCampo){
     var campo = cfg.campos.find(function(c){ return c.chave === chaveCampo; });
-    return '<th>' + esc(campo ? campo.label : ((cfg.rotulos && cfg.rotulos[chaveCampo]) || chaveCampo)) + '</th>';
+    var rot = campo ? campo.label : ((cfg.rotulos && cfg.rotulos[chaveCampo]) || chaveCampo);
+    var o = stateCadSimples.ordem || {};
+    var ativa = o.chave === chaveCampo;
+    return '<th class="cs-th-ordena' + (ativa ? ' ativa' : '') + '" onclick="csOrdenarPor(\'' + esc(chaveCampo) + '\')" title="Clique para ordenar por ' + esc(rot) + '">'
+      + esc(rot) + '<span class="cs-seta">' + (ativa ? (o.dir === 'desc' ? '▼' : '▲') : '↕') + '</span></th>';
   }).join('') + extra + '<th style="width:60px;">Ações</th></tr>';
 }
 
@@ -4975,6 +4985,70 @@ function ciResumoPasta(itens){
     alerta: alerta ? alerta + ' contrato(s) vencendo ou vencido(s)' : '', alertaQtd: alerta,
     papel: { rotulo: 'Total dos contratos', valor: ciMoeda(total), extra: 'valor atualizado, com aditivos' }
   };
+}
+
+
+/* ---------- ORDENAÇÃO DAS LISTAS (clique no título da coluna) ----------
+   1º clique: datas e números do MAIOR para o menor, textos de A a Z.
+   2º clique: inverte. Valores vazios ficam sempre no fim.
+   Entende datas (aaaa-mm-dd e dd/mm/aaaa), números/valores, Sim/Não e a
+   coluna "Situação" (Vencido há X dias < Vence hoje < Vence em X dias). */
+function csOrdenarPor(chave){
+  var o = stateCadSimples.ordem;
+  if(o && o.chave === chave) stateCadSimples.ordem = { chave: chave, dir: o.dir === 'asc' ? 'desc' : 'asc' };
+  else{
+    var cfg = CADASTROS_SIMPLES[stateCadSimples.chave];
+    var campo = cfg && cfg.campos.find(function(c){ return c.chave === chave; });
+    var tipo = csTipoOrdem(cfg, chave, campo);
+    stateCadSimples.ordem = { chave: chave, dir: (tipo === 'data' || tipo === 'numero') ? 'desc' : 'asc' };
+  }
+  var cfgAtual = CADASTROS_SIMPLES[stateCadSimples.chave];
+  if(cfgAtual) renderCadSimplesCabecalho(cfgAtual);
+  renderCadSimplesTabela();
+}
+function csTipoOrdem(cfg, chave, campo){
+  if(campo){
+    if(campo.tipo === 'date') return 'data';
+    if(campo.tipo === 'number' || campo.tipo === 'inteiro') return 'numero';
+  }
+  /* descobre pelo conteúdo (colunas calculadas, como "Vigência até") */
+  var amostra = (stateCadSimples.dados || []).map(function(d){ return d[chave]; }).filter(function(v){ return v !== null && v !== undefined && v !== '' && v !== '-'; }).slice(0, 20);
+  if(amostra.length && amostra.every(function(v){ return /^\d{4}-\d{2}-\d{2}/.test(String(v)) || /^\d{2}\/\d{2}\/\d{4}$/.test(String(v)); })) return 'data';
+  if(amostra.length && amostra.every(function(v){ return typeof v === 'number'; })) return 'numero';
+  return 'texto';
+}
+function csValorOrdem(v, tipo){
+  if(v === null || v === undefined || v === '' || v === '-') return null;
+  if(typeof v === 'boolean') return v ? 1 : 0;
+  var t = String(v).trim();
+  if(tipo === 'data' || /^\d{2}\/\d{2}\/\d{4}$/.test(t)){
+    var m = t.match(/^(\d{2})\/(\d{2})\/(\d{4})/); if(m) return m[3] + '-' + m[2] + '-' + m[1];
+    return t.slice(0, 19);
+  }
+  if(tipo === 'numero'){ var n = typeof v === 'number' ? v : numeroBRParaFloat(t); return isNaN(n) ? null : n; }
+  /* situação de vencimento: ordena pelo prazo, não pelo texto */
+  var venc = t.match(/^Venc(?:ido|eu) há (\d+)/i); if(venc) return -Number(venc[1]);
+  if(/^Vence hoje/i.test(t)) return 0;
+  var em = t.match(/^Vence em (\d+)/i); if(em) return Number(em[1]);
+  return t;
+}
+function csOrdenarLista(cfg, lista){
+  var o = stateCadSimples.ordem; if(!o || !o.chave) return lista;
+  var campo = cfg.campos.find(function(c){ return c.chave === o.chave; });
+  var tipo = csTipoOrdem(cfg, o.chave, campo);
+  var fator = o.dir === 'desc' ? -1 : 1;
+  return lista.map(function(item, i){ return { item: item, i: i, v: csValorOrdem(item[o.chave], tipo) }; })
+    .sort(function(a, b){
+      if(a.v === null && b.v === null) return a.i - b.i;
+      if(a.v === null) return 1;          /* vazios sempre no fim */
+      if(b.v === null) return -1;
+      var r;
+      if(typeof a.v === 'number' && typeof b.v === 'number') r = a.v - b.v;
+      else if(typeof a.v === 'number') r = -1;     /* situações com prazo antes de textos (Pago, A pagar...) */
+      else if(typeof b.v === 'number') r = 1;
+      else r = String(a.v).localeCompare(String(b.v), 'pt-BR', { numeric: true, sensitivity: 'base' });
+      return (r * fator) || (a.i - b.i);
+    }).map(function(x){ return x.item; });
 }
 
 function csFiltroSelectChange(chave, valor){
@@ -5248,6 +5322,7 @@ function renderCadSimplesTabela(){
   });
 
   $('cs-filtro-count').textContent = lista.length + ' de ' + stateCadSimples.dados.length + ' registro(s)';
+  lista = csOrdenarLista(cfg, lista);
 
   if(!lista.length){
     $('cs-table').style.display = 'none';
@@ -13808,9 +13883,10 @@ function lgpdRecusar(){
 /* Ficam FORA do filtro por CC (funcionam como originalmente, vendo tudo):
    - Recepção (rec_atendimentos): atende qualquer colaborador da empresa;
    - Jurídico (processos ativos/arquivados, medidas disciplinares,
-     pagamentos e perícias). */
-var CS_TABELAS_DE_COLABORADOR = ['med_afastados','med_controle_asos','med_exames','ben_beneficiarios','trilha_participacoes'];
-var AMBIENTES_SEM_FILTRO_CC = ['Recepção','Jurídico'];
+     pagamentos e perícias);
+   - Medicina Ocupacional (ASOs, exames, afastados, perícias). */
+var CS_TABELAS_DE_COLABORADOR = ['ben_beneficiarios','trilha_participacoes'];
+var AMBIENTES_SEM_FILTRO_CC = ['Recepção','Jurídico','Medicina Ocupacional'];
 function ccsDoUsuario(){ var u = state.usuarioLogado; return (u && Array.isArray(u.ccsColaboradores)) ? u.ccsColaboradores : []; }
 function usuarioRestritoPorCc(){ return ccsDoUsuario().length > 0; }
 function colabCcPermitido(c){
