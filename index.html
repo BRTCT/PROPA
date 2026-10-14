@@ -917,6 +917,32 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
   .rec-hist-dia-tit{display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #e4e7ea;padding:4px 2px 6px;margin-bottom:6px;font-size:13.5px;font-weight:700;color:#26323b;}
   .rec-hist-dia-tit b{font-size:12px;color:#6b747d;font-weight:600;}
   .rec-hist-hora{display:inline-block;background:#e7f6e2;color:#0d8a2e;font-weight:700;border-radius:4px;padding:2px 8px;margin-right:6px;}
+  /* ===== Medicina - Tela de Chamado ===== */
+  .cham-topo{display:flex;gap:12px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px;font-size:12px;}
+  .cham-topo label{display:flex;flex-direction:column;gap:3px;color:#555;}
+  .cham-link{display:flex;gap:10px;align-items:center;flex-wrap:wrap;background:#0b2a4a;color:#fff;border-radius:8px;padding:12px 14px;margin-bottom:14px;}
+  .cham-link > div{flex:1;min-width:220px;} .cham-link b{display:block;font-size:14px;} .cham-link span{font-size:12px;opacity:.85;}
+  .cham-link code{background:rgba(255,255,255,.12);padding:6px 8px;border-radius:4px;font-size:11.5px;max-width:420px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+  .cham-link .btn{text-decoration:none;}
+  .cham-grade{display:grid;grid-template-columns:minmax(0,1fr) 300px;gap:16px;align-items:start;}
+  @media (max-width:1000px){ .cham-grade{grid-template-columns:1fr;} }
+  .cham-tab tr.chamado td{background:#f6fbf2;}
+  .cham-btn{border:0;border-radius:6px;background:#0b8ee0;color:#fff;font-weight:700;padding:7px 14px;cursor:pointer;font-family:inherit;white-space:nowrap;}
+  .cham-btn:hover{filter:brightness(1.08);} .cham-btn.de-novo{background:#5a6570;} .cham-btn:disabled{opacity:.6;cursor:wait;}
+  .cham-ordem{font-weight:800;color:#0d8a2e;font-size:14px;text-align:center;width:44px;}
+  .cham-chegada{display:inline-block;background:#e7f6e2;color:#0d8a2e;font-weight:700;border-radius:4px;padding:2px 8px;}
+  .cham-sem{color:#9aa3ab;}
+  .cham-grupo td{background:#f3f5f7 !important;font-weight:700;font-size:12px;color:#3a454e;padding:6px 10px !important;}
+  .cham-grupo span{display:inline-block;background:#fff;border-radius:10px;padding:0 8px;margin-left:6px;color:#5a6570;}
+  .cham-grupo.g-aguard td{background:#e7f6e2 !important;color:#0b6b23;}
+  .cham-tab tr.cham-aguard td{background:#fbfefa;}
+  .cham-tab tr.cham-cham td{color:#6b747d;}
+  .cham-tab tr.cham-nao td{color:#5a6570;} .cham-tab tr.cham-fora td{color:#9aa3ab;text-decoration:line-through;}
+  .cham-btn.nao-chegou{background:#9aa3ab;}
+  .cham-ult{display:flex;flex-direction:column;gap:6px;}
+  .cham-ult-item{display:grid;grid-template-columns:46px 1fr;gap:0 8px;background:#f3f5f7;border-radius:6px;padding:7px 9px;font-size:12px;}
+  .cham-ult-item span{grid-row:span 2;color:#6b747d;font-weight:700;} .cham-ult-item em{font-style:normal;color:#6b747d;font-size:11px;}
+  .cham-ult-item.atual{background:#0b2a4a;color:#ffd400;} .cham-ult-item.atual span,.cham-ult-item.atual em{color:#cfe3f7;}
   /* ===== Duo Card ===== */
   .duo-topo{display:flex;align-items:center;gap:12px;margin-bottom:12px;font-size:12.5px;}
   .duo-status{padding:3px 10px;border-radius:12px;font-weight:700;font-size:11.5px;} .duo-status.aberta{background:#e0f2fe;color:#0369a1;} .duo-status.fechada{background:#eceef0;color:#5a6570;}
@@ -2778,6 +2804,11 @@ var AMBIENTES = [
         itens: ['Agendamento de Exames','Afastamentos por CID']
       },
       {
+        titulo: 'Atendimento Médico',
+        sub: 'Chame os pacientes do dia na TV da sala de espera',
+        itens: ['Tela de Chamado']
+      },
+      {
         titulo: 'Relatórios e Dashboards',
         sub: 'Selecione a rotina na lista abaixo',
         itens: ['Exames a Vencer','Aptos e Inaptos','Dashboards Afastados']
@@ -3673,6 +3704,7 @@ var ROTINAS_PRONTAS = {
   'Atendimentos::Atendimentos Agendados': 'abrirDashboardAtendimentos',
   'Atendimentos::Histórico de Comparecimento': 'abrirRecHistorico',
   'Comunicação::Chat': 'abrirRecChat',
+  'Atendimento Médico::Tela de Chamado': 'abrirMedTelaChamado',
   'Duo Card::Apuração Duo Card': 'abrirDuoApuracao',
   'Calendário::Calendário': 'abrirCalendario',
   'Emissão de Documentos::Emissão de Documentos': 'abrirEmissaoDocumentos',
@@ -13519,7 +13551,7 @@ var RT = { canal: null, ok: false, instalado: false, tela: null, pendentes: {}, 
 var RT_TABELAS = ['mqp_solicitacoes','mqp_fluxos','usuarios','ci_contratos','ci_aditivos','ci_boletos',
   'trilha_salas','trilha_instrutores','trilha_treinamentos','trilha_turmas','trilha_participacoes','trilha_funcao_treinamentos',
   'dp_centros_custo','dp_medidas_disciplinares','jur_pagamentos','jur_pericias','jur_processos','jur_processos_arquivados',
-  'med_afastados','med_controle_asos','med_exames','rec_atendentes','rec_atendimentos','rec_atendimentos_notificacoes','ben_beneficiarios'];
+  'med_afastados','med_controle_asos','med_exames','rec_atendentes','rec_atendimentos','rec_atendimentos_notificacoes','rec_chamadas','ben_beneficiarios'];
 
 function rtRegistro(){
   var MQP = ['mqp_solicitacoes','mqp_fluxos','usuarios'], CI = ['ci_contratos','ci_aditivos','ci_boletos'];
@@ -13535,6 +13567,7 @@ function rtRegistro(){
     mqpAprovDetalhe:     dash(MQP, async function(id){ await mqpCarregarUsuarios(); var r = await mqpCarregarMqps(); if(!r.error){ stMqpAprov.dados = r.data || []; await mqpAprovDetalhe(id); } }),
     mqpAprovadaDetalhe:  dash(MQP, async function(id){ await mqpCarregarUsuarios(); var r = await mqpCarregarMqps(); if(!r.error){ stMqpAprov.dados = r.data || []; await mqpAprovadaDetalhe(id); } }),
     abrirMqpFluxo:       dash(['mqp_fluxos','usuarios','dp_centros_custo'], async function(){ if(stFluxo.sujo) return 'ocupado'; await mqpCarregarFluxos(); await mqpCarregarUsuarios(); mqpFluxoEditar(stFluxo.tipo, true); }),
+    abrirMedTelaChamado: dash(['rec_atendimentos','rec_chamadas'], async function(){ if(document.activeElement && /INPUT|SELECT/.test(document.activeElement.tagName)) return 'ocupado'; await chamCarregar(); }),
     abrirRecHistorico: dash(['rec_atendimentos_notificacoes'], async function(){ await recHistCarregar(); }),
     abrirDashboardAuditoria: dash(['auditoria_acessos','auditoria_alteracoes'], async function(){ await auditCarregar(); }),
     abrirCiAlertas:      dash(CI, async function(){ await ciCarregar(); renderCiAlertas(); }),
@@ -15066,6 +15099,163 @@ async function duoExportar(){
     console.error(e);
     toast('Não foi possível gerar a planilha: ' + (e && e.message ? e.message : e), true, 9000);
   }
+}
+
+/* =====================================================================
+   MEDICINA OCUPACIONAL - TELA DE CHAMADO
+   - Lista os agendamentos do dia (Recepção > Cadastro de Atendimento) do
+     atendente escolhido (padrão: Dra. Clívia), com o botão "Chamar".
+   - "Chamar" grava em rec_chamadas; a TV (tela_chamada.html, link à parte)
+     mostra o paciente e o consultório na hora, com aviso sonoro e voz.
+   - Atendente e consultório ficam lembrados neste computador.
+   ===================================================================== */
+var stCham = { dia: '', atendente: '', consultorio: '', agend: [], chamadas: [], atendentes: [] };
+
+function chamPref(k, v){
+  try{ if(v === undefined) return localStorage.getItem('cham_' + k) || ''; localStorage.setItem('cham_' + k, v); }catch(e){ return ''; }
+}
+function chamUrlTv(){
+  var u = new URL('tela_chamada.html', location.href);
+  if(stCham.atendente) u.searchParams.set('atendente', stCham.atendente);
+  return u.href;
+}
+function abrirMedTelaChamado(){
+  trilhaMostrarPainel('Atendimento Médico', 'Tela de Chamado');
+  $('dash-crumb').textContent = 'Medicina Ocupacional > Atendimento Médico';
+  stCham.dia = hoje();
+  /* local exibido na TV (antes era o número do consultório) */
+  var salvo = chamPref('local');
+  if(salvo === 'Sala de Medicina Ocupacional') salvo = '';   /* nome antigo: passa para o novo */
+  stCham.consultorio = stCham.consultorio || salvo || 'Consultório Médico';
+  chamCarregar();
+}
+async function chamCarregar(){
+  var el = $('viz-conteudo');
+  if(!stCham.agend.length) el.innerHTML = '<div style="padding:40px;text-align:center;">Carregando agendamentos…</div>';
+  try{
+    var inicioDia = new Date(stCham.dia + 'T00:00:00').toISOString();
+    var r = await Promise.all([
+      sbClient.from('rec_atendimentos').select('*').eq('data_agendamento', stCham.dia).range(0, 999),
+      sbClient.from('rec_chamadas').select('*').gte('created_at', inicioDia).order('created_at', { ascending: false }).range(0, 199),
+      sbClient.from('rec_atendentes').select('*').range(0, 499),
+      sbClient.from('rec_atendimentos_notificacoes').select('*').gte('data_notificacao', inicioDia).range(0, 999)
+    ]);
+    stCham.sinos = (r[3] && !r[3].error) ? (r[3].data || []) : [];
+    if(r[0].error) throw r[0].error;
+    stCham.agend = r[0].data || [];
+    stCham.chamadas = r[1].error ? [] : (r[1].data || []);
+    stCham.erroChamadas = r[1].error || null;
+    var nomes = {};
+    (r[2].data || []).forEach(function(a){ if(a.nome) nomes[a.nome] = 1; });
+    stCham.agend.forEach(function(a){ if(a['quem_atenderá']) nomes[a['quem_atenderá']] = 1; });
+    stCham.atendentes = Object.keys(nomes).sort(function(a,b){ return a.localeCompare(b, 'pt-BR'); });
+    if(!stCham.atendente){
+      var salvo = chamPref('atendente');
+      stCham.atendente = (salvo && stCham.atendentes.indexOf(salvo) >= 0) ? salvo
+        : (stCham.atendentes.find(function(n){ return /cl[ií]via/i.test(n); }) || stCham.atendentes[0] || '');
+    }
+    renderChamado();
+  }catch(e){
+    console.error(e);
+    el.innerHTML = '<div class="vz-empty" style="padding:60px 20px;">Não foi possível carregar.<br><small style="color:#a32a1f;">' + esc(dpFormatarErroSupabase('Motivo', e)) + '</small></div>';
+  }
+}
+function chamMudar(k, v){
+  stCham[k] = v;
+  if(k === 'atendente') chamPref(k, v);
+  if(k === 'consultorio') chamPref('local', v);
+  if(k === 'dia'){ stCham.agend = []; chamCarregar(); } else renderChamado();
+}
+/* hora de chegada: gravada quando a Recepção marca COMPARECEU; para quem foi
+   marcado antes do SQL da hora de chegada, usa o 1º toque do sino */
+function chamHoraChegada(a){
+  if(a.hora_chegada) return a.hora_chegada;
+  var sinos = (stCham.sinos || []).filter(function(n){ return String(n.agendamento_id || '') === String(a.id) || (!n.agendamento_id && n.colaborador === a.nome_colaborador); })
+    .map(function(n){ return n.data_notificacao; }).sort();
+  return sinos[0] || null;
+}
+function chamUltima(a){
+  return stCham.chamadas.find(function(c){ return String(c.agendamento_id || '') === String(a.id) || (!c.agendamento_id && c.paciente === a.nome_colaborador); });
+}
+function renderChamado(){
+  var el = $('viz-conteudo');
+  var doAtendente = stCham.agend.filter(function(a){ return !stCham.atendente || (a['quem_atenderá'] || '') === stCham.atendente; });
+  var st = function(a){ return String(a.status || '').trim().toUpperCase(); };
+  var compareceu = function(a){ return st(a) === 'COMPARECEU'; };
+  doAtendente.forEach(function(a){ a._chegada = compareceu(a) ? chamHoraChegada(a) : null; });
+  var porChegada = function(x, y){
+    if(x._chegada && y._chegada) return String(x._chegada).localeCompare(String(y._chegada));
+    if(x._chegada) return -1; if(y._chegada) return 1;
+    return String(x.horario_comparecimento || '99').localeCompare(String(y.horario_comparecimento || '99'));
+  };
+  var porHorario = function(x, y){ return String(x.horario_comparecimento || '99').localeCompare(String(y.horario_comparecimento || '99')) || String(x.nome_colaborador).localeCompare(String(y.nome_colaborador), 'pt-BR'); };
+  /* 1) chegaram e aguardam (ordem de chegada)  2) já chamados  3) ainda não chegaram  4) não compareceu / cancelado */
+  var aguardando = doAtendente.filter(function(a){ return compareceu(a) && !chamUltima(a); }).sort(porChegada);
+  var chamados = doAtendente.filter(function(a){ return compareceu(a) && chamUltima(a); }).sort(porChegada);
+  var naoChegaram = doAtendente.filter(function(a){ return !compareceu(a) && !/N[ÃA]O COMPARECEU|CANCELAD/.test(st(a)); }).sort(porHorario);
+  var fora = doAtendente.filter(function(a){ return /N[ÃA]O COMPARECEU|CANCELAD/.test(st(a)); }).sort(porHorario);
+  var hhmm = function(iso){ return iso ? new Date(iso).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) : '-'; };
+  var linha = function(a, ordem, grupo){
+    var ult = chamUltima(a);
+    return '<tr class="cham-' + grupo + '"><td class="cham-ordem">' + (ordem ? ordem + 'º' : '') + '</td>'
+      + '<td>' + (a._chegada ? '<span class="cham-chegada">' + hhmm(a._chegada) + '</span>' : '<span class="cham-sem">-</span>') + '</td>'
+      + '<td>' + esc(a.horario_comparecimento || '-') + '</td><td><b>' + esc(a.nome_colaborador || '-') + '</b></td><td>' + esc(a.matricula || '-') + '</td><td>' + esc(a.funcao || '-') + '</td>'
+      + '<td>' + esc(a.status || '-') + '</td><td>' + (ult ? hhmm(ult.created_at) : '-') + '</td>'
+      + '<td>' + (grupo === 'fora' ? '' : '<button class="cham-btn' + (ult ? ' de-novo' : '') + (grupo === 'nao' ? ' nao-chegou' : '') + '" onclick="chamChamar(' + JSON.stringify(String(a.id)).replace(/"/g, '&quot;') + ', this)">📢 ' + (ult ? 'Chamar de novo' : 'Chamar') + '</button>') + '</td></tr>';
+  };
+  var grupoTit = function(t, n, cls){ return n ? '<tr class="cham-grupo ' + cls + '"><td colspan="9">' + t + ' <span>' + n + '</span></td></tr>' : ''; };
+  var linhas = !doAtendente.length ? '<div class="vz-empty" style="padding:40px;">Nenhum agendamento para ' + esc(stCham.atendente || 'este atendente') + ' em ' + esc(fmtBR(stCham.dia)) + '.<br><small>Os agendamentos vêm de Recepção > Cadastro de Atendimento.</small></div>'
+    : '<div style="overflow-x:auto;"><table class="vz-table cham-tab"><thead><tr><th>Ordem</th><th>Chegou às</th><th>Agendado</th><th>Colaborador</th><th>Matrícula</th><th>Função</th><th>Status</th><th>Última chamada</th><th></th></tr></thead><tbody>'
+      + grupoTit('🟢 Aguardando atendimento - ordem de chegada', aguardando.length, 'g-aguard') + aguardando.map(function(a, i){ return linha(a, i + 1, 'aguard'); }).join('')
+      + grupoTit('✓ Já chamados', chamados.length, 'g-cham') + chamados.map(function(a){ return linha(a, 0, 'cham'); }).join('')
+      + grupoTit('⏳ Ainda não chegaram', naoChegaram.length, 'g-nao') + naoChegaram.map(function(a){ return linha(a, 0, 'nao'); }).join('')
+      + grupoTit('Não compareceram / cancelados', fora.length, 'g-fora') + fora.map(function(a){ return linha(a, 0, 'fora'); }).join('')
+      + '</tbody></table></div>';
+  var lista = doAtendente;
+  var topo = '<div class="cham-topo">'
+    + '<label>Atendente<select class="mesnav-select" onchange="chamMudar(\'atendente\', this.value)">' + stCham.atendentes.map(function(n){ return '<option' + (n === stCham.atendente ? ' selected' : '') + '>' + esc(n) + '</option>'; }).join('') + '</select></label>'
+    + '<label>Local (aparece na TV)<input type="text" class="filtro-data" style="width:240px;" value="' + esc(stCham.consultorio) + '" onchange="chamMudar(\'consultorio\', this.value.trim() || \'Consultório Médico\')"></label>'
+    + '<label>Dia<input type="date" class="filtro-data" value="' + esc(stCham.dia) + '" onchange="chamMudar(\'dia\', this.value)"></label>'
+    + '<span style="flex:1"></span><button class="btn" onclick="chamCarregar()">↻ Atualizar</button></div>';
+  var link = '<div class="cham-link"><div><b>📺 Link da tela de chamado (TV)</b><span>Abra este link no computador ligado à TV da sala de espera. Na TV, toque uma vez na tela para ativar o som.</span></div>'
+    + '<code>' + esc(chamUrlTv()) + '</code>'
+    + '<button class="btn" onclick="copiarTexto(this.dataset.u)" data-u="' + esc(chamUrlTv()) + '">Copiar link</button>'
+    + '<a class="btn primary" href="' + esc(chamUrlTv()) + '" target="_blank" rel="noopener">Abrir tela</a></div>';
+  var aviso = stCham.erroChamadas ? '<div class="mqp-devolvida negada"><b>A tabela de chamadas não está disponível.</b><span>Rode o SQL da Tela de Chamado no Supabase.</span></div>' : '';
+  var ultimas = stCham.chamadas.filter(function(c){ return !stCham.atendente || !c.atendente || c.atendente === stCham.atendente; }).slice(0, 8);
+  var painel = '<div class="cham-ult">' + (ultimas.length ? ultimas.map(function(c, i){
+      return '<div class="cham-ult-item' + (i === 0 ? ' atual' : '') + '"><span>' + new Date(c.created_at).toLocaleTimeString('pt-BR', { hour:'2-digit', minute:'2-digit' }) + '</span><b>' + esc(c.paciente) + '</b><em>' + esc(chamLocalTexto(c.consultorio)) + '</em></div>';
+    }).join('') : '<div class="vz-empty">Nenhuma chamada hoje.</div>') + '</div>';
+  el.innerHTML = topo + link + aviso
+    + '<div class="cham-grade"><div>' + trilhaCard('Pacientes de ' + fmtBR(stCham.dia), aguardando.length + ' aguardando | ' + chamados.length + ' chamado(s) | ' + naoChegaram.length + ' ainda não chegaram | ' + (stCham.atendente || '-'), linhas) + '</div>'
+    + '<div>' + trilhaCard('Últimas chamadas', 'O que aparece na TV', painel) + '</div></div>';
+}
+async function chamChamar(id, btn){
+  var a = stCham.agend.find(function(x){ return String(x.id) === String(id); }); if(!a) return;
+  if(!stCham.consultorio){ toast('Informe o local.', true); return; }
+  if(btn){ btn.disabled = true; btn.textContent = 'Chamando…'; }
+  try{
+    var u = state.usuarioLogado || {};
+    var r = await sbClient.from('rec_chamadas').insert({
+      agendamento_id: String(a.id), paciente: a.nome_colaborador || '', matricula: a.matricula || null,
+      consultorio: stCham.consultorio, atendente: a['quem_atenderá'] || stCham.atendente || null,
+      chamado_por: u.nome || u.usuario || null
+    }).select().single();
+    if(r.error) throw r.error;
+    stCham.chamadas.unshift(r.data);
+    toast('📢 ' + a.nome_colaborador + ' chamado(a): ' + chamLocalTexto(stCham.consultorio) + '.');
+    renderChamado();
+  }catch(e){
+    toast(dpFormatarErroSupabase('Não foi possível chamar', e), true, 9000);
+    if(btn){ btn.disabled = false; btn.textContent = '📢 Chamar'; }
+  }
+}
+/* número sozinho vira "Consultório 03"; texto (ex.: Consultório Médico) fica como está */
+function chamLocalTexto(c){ c = String(c || '').trim(); return /^\d+$/.test(c) ? 'Consultório ' + (c.length < 2 ? '0' + c : c) : (c || '-'); }
+function copiarTexto(t){
+  var ok = function(){ toast('Link copiado.'); };
+  if(navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, function(){ prompt('Copie o link:', t); });
+  else prompt('Copie o link:', t);
 }
 
 /* =====================================================================
