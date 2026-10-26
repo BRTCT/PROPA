@@ -421,6 +421,7 @@ Resources:`;for(let t of c){if(!t||typeof t!=`string`)throw Error(`@supabase/aut
     font-size:12.5px;color:#333;background:#fff;font-family:inherit;
   }
   .datapag-input:focus{outline:none;border-color:var(--azul);box-shadow:0 0 0 2px rgba(18,114,185,0.15);}
+  input.data-invalida, table.func tbody tr td input.data-invalida{border-color:#c62828 !important;background:#fdecea !important;color:#c62828 !important;}
   .valor-input{
     width:120px;border:1px solid #d0d0d0;border-radius:2px;padding:4px 7px;
     font-size:12.5px;color:#333;background:#fff;font-family:inherit;text-align:right;
@@ -3096,7 +3097,10 @@ function dataBRParaISO(s){
      <input type="date">, que o navegador já entrega em ISO (AAAA-MM-DD) - nesse
      caso não há nada para converter, só validar e devolver como está. Os demais
      (data_nascimento, data_admissao, etc.) vêm da planilha em formato BR. */
-  if(/^\d{4}-\d{2}-\d{2}$/.test(str)) return str;
+  if(/^\d{4}-\d{2}-\d{2}$/.test(str)){
+    var ya = parseInt(str.slice(0,4),10);
+    return (ya >= 1900 && ya <= 2100) ? str : null;
+  }
   var m = str.match(/^(\d{1,2})\/(\d{1,2})\/(\d{2,4})$/);
   if(!m) return null;
   var d = parseInt(m[1],10), mo = parseInt(m[2],10), y = parseInt(m[3],10);
@@ -3250,7 +3254,31 @@ async function dpCarregarDadosIniciais(){
    específicos (array com os nomes das colunas em snake_case) - usado pelos campos
    editados linha a linha na tela de Rescisão, para não reenviar a linha toda a cada
    tecla digitada. */
-async function dpSalvarColaborador(p, campos){
+/* Data de pagamento válida: AAAA-MM-DD, ano entre 2000 e 2100 e dia que existe.
+   O <input type="date"> do Chrome dispara "change" a cada dígito do ano
+   (0002 -> 0020 -> 0202 -> 2026); só datas completas e válidas são gravadas. */
+function dataPagValida(iso){
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(String(iso||''))) return false;
+  var y = +iso.slice(0,4), m = +iso.slice(5,7), d = +iso.slice(8,10);
+  if(y < 2000 || y > 2100) return false;
+  var dt = new Date(y, m-1, d);
+  return dt.getFullYear() === y && dt.getMonth() === m-1 && dt.getDate() === d;
+}
+
+/* Fila por matrícula: uma gravação só sai depois que a anterior do mesmo
+   colaborador terminou, então uma resposta antiga nunca passa por cima de uma nova. */
+var dpFilaSalvar = {};
+function dpSalvarColaborador(p, campos){
+  if(!p || !p.matricula) return Promise.resolve();
+  var k = p.matricula;
+  var anterior = dpFilaSalvar[k] || Promise.resolve();
+  var prox = anterior.then(function(){ return dpSalvarColaboradorAgora(p, campos); }, function(){ return dpSalvarColaboradorAgora(p, campos); });
+  dpFilaSalvar[k] = prox;
+  prox.then(function(){ if(dpFilaSalvar[k] === prox) delete dpFilaSalvar[k]; });
+  return prox;
+}
+
+async function dpSalvarColaboradorAgora(p, campos){
   if(!p || !p.matricula) return;
   try{
     var linha = dpColaboradorParaLinha(p);
@@ -3259,6 +3287,12 @@ async function dpSalvarColaborador(p, campos){
       payload = {};
       campos.forEach(function(k){ payload[k] = linha[k]; });
     }
+    /* nunca envia data de pagamento quebrada (nem apaga a que está no banco por causa dela) */
+    [['data_pagamento_mqp','dataPagamentoMqp'],['data_pagamento_ferias','dataPagamentoFerias']].forEach(function(par){
+      var bruto = p[par[1]];
+      if(bruto && !dataPagValida(bruto) && (par[0] in payload)) delete payload[par[0]];
+    });
+    if(!Object.keys(payload).length) return;
     var resp = await sbClient.from('dp_colaboradores').update(payload).eq('matricula', p.matricula);
     if(resp.error){
       toast(dpFormatarErroSupabase('Não foi possível salvar no Supabase', resp.error), true, 9000);
@@ -3271,15 +3305,36 @@ async function dpSalvarColaborador(p, campos){
 }
 
 var dpSalvarDebounceTimers = {};
-function dpSalvarColaboradorDebounced(idx, campos){
+var dpSalvarCamposPendentes = {};
+function dpSalvarColaboradorDebounced(idx, campos, espera){
   var p = state.colaboradores[idx];
   if(!p || !p.matricula) return;
   var chave = p.matricula;
+  /* soma os campos: editar MQP e logo depois o valor não perde nenhum dos dois */
+  var pend = dpSalvarCamposPendentes[chave] || [];
+  (campos || []).forEach(function(c){ if(pend.indexOf(c) < 0) pend.push(c); });
+  dpSalvarCamposPendentes[chave] = pend;
   clearTimeout(dpSalvarDebounceTimers[chave]);
   dpSalvarDebounceTimers[chave] = setTimeout(function(){
-    dpSalvarColaborador(p, campos);
-  }, 700);
+    dpSalvarColaboradorAgendadoJa(chave, p);
+  }, espera || 700);
 }
+function dpSalvarColaboradorAgendadoJa(chave, p){
+  clearTimeout(dpSalvarDebounceTimers[chave]);
+  delete dpSalvarDebounceTimers[chave];
+  var cs = dpSalvarCamposPendentes[chave];
+  delete dpSalvarCamposPendentes[chave];
+  if(cs && cs.length) dpSalvarColaborador(p, cs);
+}
+/* grava na hora o que estiver esperando (ao sair do campo / fechar a página) */
+function dpSalvarPendentesAgora(){
+  Object.keys(dpSalvarCamposPendentes).forEach(function(chave){
+    var p = (state.colaboradores || []).find(function(c){ return c.matricula === chave; });
+    if(p) dpSalvarColaboradorAgendadoJa(chave, p);
+  });
+}
+window.addEventListener('pagehide', dpSalvarPendentesAgora);
+document.addEventListener('visibilitychange', function(){ if(document.visibilityState === 'hidden') dpSalvarPendentesAgora(); });
 
 /* Salva em lotes menores (não tudo de uma vez): um upsert é uma única
    instrução SQL, então se UMA linha do lote tiver um problema (ex.: um valor
@@ -6853,8 +6908,8 @@ function renderRescisaoTable(){
       + '<td><span class="badge '+sit.cls+'">'+sit.texto+'</span></td>'
       + '<td class="td-mqp"><input type="text" class="mqp-input" inputmode="numeric" placeholder="-" '
         + 'value="'+esc(mqp)+'" oninput="onMqpInput('+idx+',this)"></td>'
-      + '<td><input type="date" class="datapag-input" '
-        + 'value="'+esc(dataPag)+'" onchange="onDataPagamentoInput('+idx+',this)"></td>'
+      + '<td><input type="date" class="datapag-input'+(dataPag && !dataPagValida(dataPag) ? ' data-invalida' : '')+'" min="2000-01-01" max="2100-12-31" '
+        + 'value="'+esc(dataPag)+'" onchange="onDataPagamentoInput('+idx+',this)" onblur="onDataPagBlur('+idx+',this,\'dataPagamentoMqp\')"></td>'
       + '<td><input type="text" class="valor-input" inputmode="numeric" placeholder="R$ 0,00" '
         + 'value="'+esc(valorFmt)+'" oninput="onValorInput('+idx+',this)"></td>'
       + '<td><input type="text" class="valorfgts-input" inputmode="numeric" placeholder="R$ 0,00" '
@@ -7319,8 +7374,8 @@ function renderFeriasTable(){
       + '<td><span class="badge '+sit.cls+'">'+sit.texto+'</span></td>'
       + '<td class="td-ferias"><input type="checkbox" class="ferias-check" '
         + (feriasMarcado?'checked ':'') + 'onchange="onFeriasCheck('+idx+',this)"></td>'
-      + '<td><input type="date" class="datapagfer-input" '
-        + 'value="'+esc(dataPagFer)+'" onchange="onDataPagamentoFeriasInput('+idx+',this)"'+disabledFer+'></td>'
+      + '<td><input type="date" class="datapagfer-input'+(dataPagFer && !dataPagValida(dataPagFer) ? ' data-invalida' : '')+'" min="2000-01-01" max="2100-12-31" '
+        + 'value="'+esc(dataPagFer)+'" onchange="onDataPagamentoFeriasInput('+idx+',this)" onblur="onDataPagBlur('+idx+',this,\'dataPagamentoFerias\')"'+disabledFer+'></td>'
       + '<td><input type="text" class="valorfer-input" inputmode="numeric" placeholder="R$ 0,00" '
         + 'value="'+esc(valorFerFmt)+'" oninput="onValorFeriasInput('+idx+',this)"'+disabledFer+'></td>'
       + '</tr>';
@@ -7354,8 +7409,34 @@ function onMqpInput(idx, inputEl){
 }
 
 function onDataPagamentoInput(idx, inputEl){
-  state.colaboradores[idx].dataPagamentoMqp = inputEl.value;
-  dpSalvarColaborador(state.colaboradores[idx], ['data_pagamento_mqp']);
+  onDataPagGenerico(idx, inputEl, 'dataPagamentoMqp', 'data_pagamento_mqp');
+}
+
+/* Só grava quando a data está completa e com ano válido, e espera a pessoa
+   parar de digitar (ou sair do campo). Enquanto o ano está pela metade
+   (0002, 0020, 0202) o campo fica vermelho e nada vai para o banco. */
+function onDataPagGenerico(idx, inputEl, prop, col){
+  var p = state.colaboradores[idx]; if(!p) return;
+  var v = inputEl.value;
+  var ok = !v || dataPagValida(v);
+  inputEl.classList.toggle('data-invalida', !ok);
+  inputEl.title = ok ? '' : 'Data incompleta ou ano inválido - confira (ex.: 2026)';
+  if(!ok) return;
+  p[prop] = v;
+  dpSalvarColaboradorDebounced(idx, [col], 1200);
+}
+function onDataPagBlur(idx, inputEl, prop){
+  var p = state.colaboradores[idx]; if(!p) return;
+  var v = inputEl.value;
+  if(v && !dataPagValida(v)){
+    /* saiu do campo com data quebrada: volta para a última data válida */
+    inputEl.value = dataPagValida(p[prop]) ? p[prop] : '';
+    inputEl.classList.toggle('data-invalida', false);
+    inputEl.title = '';
+    toast('Data com ano inválido não foi salva - confira o ano (ex.: 2026).', true, 6000);
+    return;
+  }
+  dpSalvarPendentesAgora();
 }
 
 function onValorInput(idx, inputEl){
@@ -7408,8 +7489,7 @@ function onFeriasCheck(idx, checkboxEl){
 }
 
 function onDataPagamentoFeriasInput(idx, inputEl){
-  state.colaboradores[idx].dataPagamentoFerias = inputEl.value;
-  dpSalvarColaborador(state.colaboradores[idx], ['data_pagamento_ferias']);
+  onDataPagGenerico(idx, inputEl, 'dataPagamentoFerias', 'data_pagamento_ferias');
 }
 
 function onValorFeriasInput(idx, inputEl){
